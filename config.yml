@@ -8,5 +8,5 @@ programs:
         retry_count: 3
         graceful_exit: SIGTERM
         ttk: 5 # seconds
-    second_program:
-        command: "cat"
+    echo:
+        command: "echo"
