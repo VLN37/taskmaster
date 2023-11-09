@@ -1,4 +1,4 @@
-mod config;
+use masterlib::config;
 
 fn main() {
     let f = std::fs::File::open("config.yml").expect("Could not open file.");
