@@ -8,6 +8,7 @@ use super::Signal;
 #[serde(default)]
 pub struct Program {
     pub command: String,
+    pub args: String,
     pub status: ProgramStatus,
     pub processes: u32,
     pub run_at_startup: bool,
@@ -26,6 +27,7 @@ impl Default for Program {
     fn default() -> Program {
         Program {
             command: String::from("tail -f"),
+            args: String::from(""),
             status: ProgramStatus::Starting,
             processes: 1,
             run_at_startup: true,

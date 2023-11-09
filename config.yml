@@ -10,3 +10,4 @@ programs:
         ttk: 5 # seconds
     echo:
         command: "echo"
+        args: "this compiles!"
