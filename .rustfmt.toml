@@ -1,6 +1,6 @@
 max_width = 88
 tab_spaces = 4
-fn_args_layout = "Tall"
+fn_params_layout = "Tall"
 # newline_style = "Auto"
 # blank_lines_upper_bound = 1
 # blank_lines_lower_bound = 0

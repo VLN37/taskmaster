@@ -1,9 +1,9 @@
 mod structs;
 
-use std::{collections::HashMap, fmt, fs::File};
 use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, fmt, fs::File};
 
-pub use crate::config::structs::{Program, RestartOption, FromStr};
+pub use crate::config::structs::{FromStr, Program, RestartOption};
 pub use structs::*;
 
 #[derive(Debug, Serialize, Deserialize)]
