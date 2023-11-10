@@ -1,23 +1,12 @@
-use masterlib::config;
-use std::io::{Write, Read};
+use std::io::Read;
 use std::os::unix::net::UnixListener;
 use std::path::Path;
-use std::{fs, process};
 
+// cargo run -p daemon --example server
 fn main() {
-    let file = std::fs::File::open("config.yml").expect("Could not open file.");
-    let config = config::read(file);
-    let program = &config.programs["echo"];
-    let output = process::Command::new(&program.command)
-        .arg(&program.args)
-        .output();
-    std::io::stdout()
-        .write_all(&output.unwrap().stdout)
-        .unwrap();
-
     let socket = Path::new(masterlib::SOCKET_PATH);
     if socket.exists() {
-        fs::remove_file(&socket).unwrap();
+        std::fs::remove_file(&socket).unwrap();
         println!("previous socket removed")
     }
     let listener = match UnixListener::bind(&socket) {

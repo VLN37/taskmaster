@@ -1,7 +1,7 @@
-use std::{os::unix::net::UnixStream, io::Write};
-
 use masterlib::config;
+use std::{io::Write, os::unix::net::UnixStream};
 
+/// cargo run -p ctl --example client
 fn main() {
     println!("Hello, world!");
     let val = config::RestartOption::ALWAYS;
