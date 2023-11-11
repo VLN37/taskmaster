@@ -43,7 +43,7 @@ impl Default for Program {
             ttk: 10,
             success_codes: [0].to_vec(),
             succesful_start_after: 5,
-            workdir: String::from("/"),
+            workdir: std::env::var("CWD").unwrap_or(String::from("/")),
             environment_variables: String::from("ANSWER=42"),
             umask: 420,
         }

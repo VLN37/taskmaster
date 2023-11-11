@@ -1,6 +1,6 @@
 command: "bash"
 programs:
-    first_program:
+    bash:
         command: "bash"
         restart: ALWAYS
         processes: 3
@@ -10,4 +10,6 @@ programs:
         ttk: 5 # seconds
     echo:
         command: "echo"
-        args: "this compiles!"
+        args: "the arguments"
+    env:
+        command: "env"
