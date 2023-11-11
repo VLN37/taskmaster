@@ -5,7 +5,7 @@ use std::path::Path;
 use std::{fs, process};
 
 fn main() {
-    let file = std::fs::File::open("config.yml").expect("Could not open file.");
+    let file = fs::File::open(masterlib::CONFIG_PATH).expect("Could not open file.");
     let config = match config::read(file) {
         Ok(r) => r,
         Err(err) => panic!("Fuck: {:?}", err),
