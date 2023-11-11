@@ -2,7 +2,7 @@ use masterlib::daemon::config;
 
 fn main() {
     let f = std::fs::File::open("config.yml").expect("Could not open file.");
-    let config = config::read(f);
+    let config = config::read(f).unwrap();
     // println!("{:?}", config);
     // println!("{:?}", config.programs);
     // println!("{:?}", config.programs["first_program"]);

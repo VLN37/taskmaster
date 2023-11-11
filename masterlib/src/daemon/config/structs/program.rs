@@ -23,6 +23,12 @@ pub struct Program {
     pub umask: u32,
 }
 
+impl Program {
+    pub fn new() -> Program {
+        Program::default()
+    }
+}
+
 impl Default for Program {
     fn default() -> Program {
         Program {

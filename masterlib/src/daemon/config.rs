@@ -10,6 +10,6 @@ pub struct TaskMasterConfig {
     pub programs: HashMap<String, Program>,
 }
 
-pub fn read(file: File) -> TaskMasterConfig {
-    serde_yaml::from_reader(file).expect("y u no read.")
+pub fn read(file: File) -> Result<TaskMasterConfig, serde_yaml::Error> {
+    serde_yaml::from_reader(file)
 }
