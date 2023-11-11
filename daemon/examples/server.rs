@@ -6,10 +6,10 @@ use std::path::Path;
 fn main() {
     let socket = Path::new(masterlib::SOCKET_PATH);
     if socket.exists() {
-        std::fs::remove_file(&socket).unwrap();
+        std::fs::remove_file(socket).unwrap();
         println!("previous socket removed")
     }
-    let listener = match UnixListener::bind(&socket) {
+    let listener = match UnixListener::bind(socket) {
         Err(_) => panic!("failed to bind socket"),
         Ok(stream) => stream,
     };

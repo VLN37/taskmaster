@@ -44,7 +44,7 @@ mod test {
         let manifest = String::from(env!("CARGO_MANIFEST_DIR"));
         let remove = manifest.find("/masterlib").unwrap();
         let mut root = String::from(&manifest[..remove]);
-        root.push_str("/");
+        root.push('/');
         root.push_str(crate::CONFIG_PATH);
         let f = std::fs::File::open(root).expect("Could not open file.");
         let config = self::read(f);

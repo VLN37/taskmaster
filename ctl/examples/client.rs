@@ -8,5 +8,5 @@ fn main() {
     println!("{:?}", val);
 
     let mut stream = UnixStream::connect(masterlib::SOCKET_PATH).unwrap();
-    stream.write(b"STATUS bash").unwrap();
+    stream.write_all(b"STATUS bash").unwrap();
 }
