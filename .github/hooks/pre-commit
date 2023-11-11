@@ -27,13 +27,11 @@ else
 fi
 echo -n "\n"
 
-echo "CARGO CLIPPY ##################"
+echo "CARGO CLIPPY ###############"
 cargo clippy -- -D warnings
 if [ $? != 0 ]; then
 	CLIPPY=1
 	FAIL=1
-else
-	echo "    All good!"
 fi
 echo -n "\n"
 

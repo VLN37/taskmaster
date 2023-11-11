@@ -23,18 +23,6 @@ impl From<File> for TaskMasterConfig {
     }
 }
 
-#[macro_export]
-macro_rules! assert_ok {
-    ( $x:expr ) => {
-        match $x {
-            std::result::Result::Ok(v) => v,
-            std::result::Result::Err(e) => {
-                panic!("Error calling {}: {:?}", stringify!($x), e);
-            }
-        }
-    };
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -42,12 +30,10 @@ mod test {
     #[test]
     fn config_parse_test() {
         let manifest = String::from(env!("CARGO_MANIFEST_DIR"));
-        let remove = manifest.find("/masterlib").unwrap();
-        let mut root = String::from(&manifest[..remove]);
-        root.push('/');
-        root.push_str(crate::CONFIG_PATH);
+        let remove_crate_name = manifest.find("/masterlib").unwrap();
+        let root = format!("{}/{}", &manifest[..remove_crate_name], crate::CONFIG_PATH);
         let f = std::fs::File::open(root).expect("Could not open file.");
         let config = self::read(f);
-        assert_ok!(config);
+        assert!(config.is_ok());
     }
 }
