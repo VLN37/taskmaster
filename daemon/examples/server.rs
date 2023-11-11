@@ -15,9 +15,9 @@ fn main() {
     };
     println!("server started");
 
-    for stream in listener.incoming() {
+    for client in listener.incoming() {
         let mut buffer = String::new();
-        stream.unwrap().read_to_string(&mut buffer).unwrap();
+        client.unwrap().read_to_string(&mut buffer).unwrap();
         println!("Client: {}", buffer);
     }
 }

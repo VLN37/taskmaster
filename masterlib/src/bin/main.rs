@@ -1,4 +1,4 @@
-use masterlib::config;
+use masterlib::daemon::config;
 
 fn main() {
     let f = std::fs::File::open("config.yml").expect("Could not open file.");

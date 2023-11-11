@@ -1,4 +1,4 @@
-use masterlib::config;
+use masterlib::daemon::config;
 use std::io::{Write, Read};
 use std::os::unix::net::UnixListener;
 use std::path::Path;

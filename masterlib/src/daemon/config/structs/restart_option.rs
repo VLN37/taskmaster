@@ -1,4 +1,4 @@
-use crate::config::ImproperlyConfigured;
+use crate::daemon::config::exceptions::ImproperlyConfigured;
 use serde::{Deserialize, Serialize};
 pub use std::str::FromStr;
 
