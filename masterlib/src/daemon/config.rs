@@ -18,11 +18,10 @@ impl From<File> for TaskMasterConfig {
     fn from(file: File) -> Self {
         match serde_yaml::from_reader(file) {
             Ok(config) => config,
-            Err(e) => panic!("{:?}", e)
+            Err(e) => panic!("{:?}", e),
         }
     }
 }
-
 
 #[macro_export]
 macro_rules! assert_ok {

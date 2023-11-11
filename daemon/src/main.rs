@@ -1,5 +1,5 @@
 use masterlib::daemon::config;
-use std::io::{Write, Read};
+use std::io::{Read, Write};
 use std::os::unix::net::UnixListener;
 use std::path::Path;
 use std::{fs, process};
