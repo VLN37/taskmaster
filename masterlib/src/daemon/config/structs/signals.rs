@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum Signal {
     /// Hangup
-    SIGHUP,
+    SIGHUP = 1,
     /// Interrupt
     SIGINT,
     /// Quit
