@@ -1,6 +1,8 @@
+use std::error::Error;
+
 use masterlib::daemon::BackEnd;
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     let backend = BackEnd::new();
     println!("Awaiting front-end connection");
     backend.accept();
@@ -15,4 +17,5 @@ fn main() {
         };
         backend.process(&mut client).unwrap_or_else(|x| println!("err: {x:?}"));
     }
+    Ok(())
 }

@@ -1,10 +1,11 @@
 use std::{
+    error::Error,
     io::{Read, Write},
     net::Shutdown,
     os::unix::net::UnixStream,
 };
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     let mut buf = String::new();
     buf.reserve(500);
     println!("Ready for input");
