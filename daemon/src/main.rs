@@ -1,12 +1,18 @@
 use std::error::Error;
 
+use masterlib::daemon::server::Server;
 use masterlib::daemon::BackEnd;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let mut server = Server::new();
+    server.build()?;
     let backend = BackEnd::new();
+    let epollfd = server.create_epoll()?;
+
+    println!("epollfd {epollfd}");
     println!("Awaiting front-end connection");
-    backend.accept();
-    for conn in backend.socket.incoming() {
+    // server.accept();
+    for conn in server.socket.incoming() {
         println!("CONNECTED");
         let mut client = match conn {
             Ok(c) => c,
