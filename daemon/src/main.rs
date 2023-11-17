@@ -1,27 +1,54 @@
+use core::time;
 use std::error::Error;
+use std::os::fd::AsRawFd;
+use std::thread::sleep;
 
-use masterlib::daemon::server::Server;
+use masterlib::daemon::server::{Key, Server, SERVER_KEY};
 use masterlib::daemon::BackEnd;
 
+// poll server
 fn main() -> Result<(), Box<dyn Error>> {
     let mut server = Server::new();
-    server.build()?;
-    let backend = BackEnd::new();
-    let epollfd = server.create_epoll()?;
+    let mut backend = BackEnd::new();
 
-    println!("epollfd {epollfd}");
-    println!("Awaiting front-end connection");
-    // server.accept();
-    for conn in server.socket.incoming() {
-        println!("CONNECTED");
-        let mut client = match conn {
-            Ok(c) => c,
-            Err(e) => {
-                println!("connect failed {e:?}");
-                continue;
-            }
-        };
-        backend.process(&mut client).unwrap_or_else(|x| println!("err: {x:?}"));
+    server.build()?;
+    println!("Server ready");
+
+    loop {
+        sleep(time::Duration::from_secs(1));
+        println!("#{} AWAITING", server.key);
+        server.epoll_wait()?;
+        for ev in &server.events {
+            let key: Key = ev.u64;
+            match key {
+                SERVER_KEY => {
+                    server.key += 1;
+                    let client = match server.accept2() {
+                        Ok(c) => c,
+                        Err(e) => {
+                            println!("{e:?}");
+                            continue;
+                        }
+                    };
+                    println!("#{} ACCEPTED", server.key);
+                    backend.clients.insert(server.key, client);
+                }
+                key => {
+                    if (ev.events & libc::EPOLLIN as u32) != 0 {
+                        backend.recv(key)?;
+                        println!("#{key} REQUEST READ");
+                        server.modify_interest(
+                            backend.clients.get(&key).unwrap().as_raw_fd(),
+                            Server::write_event(key),
+                        )?;
+                    }
+                    if (ev.events & libc::EPOLLOUT as u32) != 0 {
+                        backend.send(key)?;
+                        println!("#{key} RESPONSE SENT");
+                    }
+                }
+            };
+        }
     }
-    Ok(())
+    // Ok(())
 }
