@@ -38,13 +38,6 @@ impl Server {
 
     pub fn accept(&self) -> io::Result<UnixStream> {
         match self.socket.accept() {
-            Ok(client) => Ok(client.0),
-            Err(e) => Err(e),
-        }
-    }
-
-    pub fn accept2(&self) -> io::Result<UnixStream> {
-        match self.socket.accept() {
             Ok((stream, _addr)) => {
                 stream.set_nonblocking(true)?;
                 self.add_interest(stream.as_raw_fd(), Self::read_event(self.key))?;
@@ -84,15 +77,7 @@ impl Server {
     }
 
     pub fn add_interest(&self, fd: RawFd, mut event: epoll_event) -> io::Result<()> {
-        // let var = event.u64;
-        // println!("event{}\npollfd {}\n fd {fd}", var, self.pollfd);
-        syscall!(epoll_ctl(
-            self.pollfd as libc::c_int,
-            EPOLL_CTL_ADD,
-            fd,
-            &mut event as *mut epoll_event
-        ))
-        .expect("interest");
+        syscall!(epoll_ctl(self.pollfd, EPOLL_CTL_ADD, fd, &mut event))?;
         Ok(())
     }
 
@@ -102,12 +87,7 @@ impl Server {
     }
 
     pub fn remove_interest(&self, fd: RawFd) -> io::Result<()> {
-        syscall!(epoll_ctl(
-            self.pollfd,
-            EPOLL_CTL_DEL,
-            fd,
-            std::ptr::null_mut()
-        ))?;
+        syscall!(epoll_ctl(self.pollfd, EPOLL_CTL_DEL, fd, std::ptr::null_mut()))?;
         Ok(())
     }
 

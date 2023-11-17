@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             match key {
                 SERVER_KEY => {
                     server.key += 1;
-                    let client = match server.accept2() {
+                    let client = match server.accept() {
                         Ok(c) => c,
                         Err(e) => {
                             println!("{e:?}");
