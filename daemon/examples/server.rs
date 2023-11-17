@@ -1,6 +1,10 @@
+use std::error::Error;
 use std::io::Read;
 use std::os::unix::net::UnixListener;
 use std::path::Path;
+
+use masterlib::daemon::server::Server;
+use masterlib::daemon::BackEnd;
 
 // cargo run -p daemon --example server
 fn main() {
@@ -20,4 +24,28 @@ fn main() {
         client.unwrap().read_to_string(&mut buffer).unwrap();
         println!("Client: {}", buffer);
     }
+}
+
+// naive server
+fn _other() -> Result<(), Box<dyn Error>> {
+    let mut server = Server::new();
+    server.build()?;
+    let _backend = BackEnd::new();
+    let epollfd = server.create_epoll()?;
+
+    println!("epollfd {epollfd}");
+    println!("Awaiting front-end connection");
+    // server.accept();
+    for conn in server.socket.incoming() {
+        println!("CONNECTED");
+        let mut _client = match conn {
+            Ok(c) => c,
+            Err(e) => {
+                println!("connect failed {e:?}");
+                continue;
+            }
+        };
+        // backend.process(&mut client).unwrap_or_else(|x| println!("err: {x:?}"));
+    }
+    Ok(())
 }
