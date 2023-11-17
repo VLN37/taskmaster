@@ -1,5 +1,6 @@
 use std::{
     mem::MaybeUninit,
+    ptr::null_mut,
     sync::mpsc::{self, Receiver},
 };
 
@@ -33,13 +34,7 @@ pub fn install_sighup_handler() -> Receiver<i32> {
     action.sa_flags = SA_SIGINFO;
     unsafe { sigemptyset(&mut action.sa_mask) };
 
-    unsafe {
-        sigaction(
-            Signal::SIGHUP as i32,
-            &action,
-            std::ptr::null_mut::<sigaction>(),
-        )
-    };
+    unsafe { sigaction(Signal::SIGHUP as i32, &action, null_mut::<sigaction>()) };
 
     rx
 }
