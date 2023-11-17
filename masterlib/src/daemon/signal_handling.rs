@@ -1,33 +1,25 @@
-use std::{
-    mem::MaybeUninit,
-    ptr::null_mut,
-    sync::mpsc::{self, Receiver},
-};
+use std::mem::MaybeUninit;
+use std::ptr::null_mut;
 
 use libc::{c_int, sigaction, sigemptyset, SA_SIGINFO};
 
 use super::config::Signal;
 
 // static mut SIGHUP_CLOSURE: Option<Box<dyn FnMut(c_int)>> = None;
-static mut SIGHUP_CLOSURE: Option<Box<dyn FnOnce(c_int)>> = None;
+static mut SIGHUP_CLOSURE: Option<Box<dyn FnMut()>> = None;
 
-extern "C" fn sighup_handler(sig: c_int) {
+extern "C" fn sighup_handler(_sig: c_int) {
     unsafe {
-        SIGHUP_CLOSURE.take().unwrap()(sig);
-        // if let Some(ref mut closure) = SIGHUP_CLOSURE {
-        //     println!("calling closure");
-        //     closure(sig);
-        //     println!("closure called");
-        // }
+        if let Some(ref mut handler) = SIGHUP_CLOSURE {
+            println!("calling closure");
+            handler();
+            println!("closure called");
+        }
     }
 }
 
-pub fn install_sighup_handler() -> Receiver<i32> {
+pub fn install_sighup_handler(handler: impl FnMut() + 'static) {
     let mut action: sigaction = unsafe { MaybeUninit::zeroed().assume_init() };
-    let (tx, rx) = mpsc::channel::<i32>();
-    let handler = move |sig| {
-        tx.send(sig).unwrap();
-    };
 
     unsafe { SIGHUP_CLOSURE = Some(Box::new(handler)) };
     action.sa_sigaction = sighup_handler as usize;
@@ -35,6 +27,4 @@ pub fn install_sighup_handler() -> Receiver<i32> {
     unsafe { sigemptyset(&mut action.sa_mask) };
 
     unsafe { sigaction(Signal::SIGHUP as i32, &action, null_mut::<sigaction>()) };
-
-    rx
 }
