@@ -1,6 +1,5 @@
 use core::time;
 use std::error::Error;
-use std::os::fd::AsRawFd;
 use std::thread::sleep;
 
 use masterlib::daemon::server::{Key, Server, SERVER_KEY};
@@ -18,33 +17,26 @@ fn main() -> Result<(), Box<dyn Error>> {
         sleep(time::Duration::from_secs(1));
         println!("#{} AWAITING", server.key);
         server.epoll_wait()?;
-        for ev in &server.events {
+        for ev in server.get_events() {
             let key: Key = ev.u64;
             match key {
                 SERVER_KEY => {
-                    server.key += 1;
-                    let client = match server.accept() {
-                        Ok(c) => c,
-                        Err(e) => {
-                            println!("{e:?}");
-                            continue;
-                        }
-                    };
-                    println!("#{} ACCEPTED", server.key);
-                    backend.clients.insert(server.key, client);
+                    if let Ok(client_key) = server.accept() {
+                        println!("#{} ACCEPTED", server.key);
+                        backend.clients.insert(server.key, client_key);
+                    }
                 }
                 key => {
                     if (ev.events & libc::EPOLLIN as u32) != 0 {
-                        backend.recv(key)?;
+                        server.recv(key)?;
                         println!("#{key} REQUEST READ");
-                        server.modify_interest(
-                            backend.clients.get(&key).unwrap().as_raw_fd(),
-                            Server::write_event(key),
-                        )?;
-                    }
-                    if (ev.events & libc::EPOLLOUT as u32) != 0 {
-                        backend.send(key)?;
+                        server.modify_interest(key, Server::write_event(key))?;
+                    } else if (ev.events & libc::EPOLLOUT as u32) != 0 {
+                        server.send(key)?;
                         println!("#{key} RESPONSE SENT");
+                    } else {
+                        let ev = ev.events;
+                        println!("Unexpected event: {}", ev);
                     }
                 }
             };

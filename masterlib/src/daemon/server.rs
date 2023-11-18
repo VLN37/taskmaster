@@ -4,6 +4,7 @@ use libc::{
     EPOLL_CTL_MOD,
 };
 use std::collections::HashMap;
+use std::io::{Read, Write};
 use std::os::{
     fd::{AsRawFd, RawFd},
     unix::net::{UnixListener, UnixStream},
@@ -31,17 +32,20 @@ impl Server {
             Ok(fd) => fd,
             Err(err) => panic!("panic {err}"),
         };
-        self.add_interest(self.socket.as_raw_fd(), Self::read_event(SERVER_KEY))?;
+        let sfd = self.socket.as_raw_fd();
+        syscall!(epoll_ctl(self.pollfd, EPOLL_CTL_ADD, sfd, &mut Self::listen()))?;
         self.ready = true;
         Ok(())
     }
 
-    pub fn accept(&self) -> io::Result<UnixStream> {
+    pub fn accept(&mut self) -> io::Result<Key> {
         match self.socket.accept() {
             Ok((stream, _addr)) => {
+                self.key += 1;
                 stream.set_nonblocking(true)?;
-                self.add_interest(stream.as_raw_fd(), Self::read_event(self.key))?;
-                Ok(stream)
+                self.clients.insert(self.key, stream);
+                self.add_interest(self.key, Self::read_event(self.key))?;
+                Ok(self.key)
             }
             Err(e) => {
                 println!("{e:?}");
@@ -50,7 +54,11 @@ impl Server {
         }
     }
 
-    pub fn create_epoll(&self) -> io::Result<RawFd> {
+    pub fn get_events(&self) -> Vec<epoll_event> {
+        self.events.clone()
+    }
+
+    pub fn create_epoll(&mut self) -> io::Result<RawFd> {
         let fd = syscall!(epoll_create1(0))?;
         if let Ok(flags) = syscall!(fcntl(fd, libc::F_GETFD)) {
             syscall!(fcntl(fd, libc::F_SETFD, flags | libc::FD_CLOEXEC))?;
@@ -60,7 +68,6 @@ impl Server {
 
     pub fn epoll_wait(&mut self) -> io::Result<()> {
         self.events.clear();
-        self.modify_interest(self.socket.as_raw_fd(), Self::read_event(SERVER_KEY))?;
         let res = match syscall!(epoll_wait(
             self.pollfd,
             self.events.as_mut_ptr(),
@@ -76,19 +83,29 @@ impl Server {
         Ok(())
     }
 
-    pub fn add_interest(&self, fd: RawFd, mut event: epoll_event) -> io::Result<()> {
+    pub fn add_interest(&self, key: Key, mut event: epoll_event) -> io::Result<()> {
+        let fd = self.clients.get(&key).unwrap().as_raw_fd();
         syscall!(epoll_ctl(self.pollfd, EPOLL_CTL_ADD, fd, &mut event))?;
         Ok(())
     }
 
-    pub fn modify_interest(&self, fd: RawFd, mut event: epoll_event) -> io::Result<()> {
+    pub fn modify_interest(&self, key: Key, mut event: epoll_event) -> io::Result<()> {
+        let fd = self.clients.get(&key).unwrap().as_raw_fd();
         syscall!(epoll_ctl(self.pollfd, EPOLL_CTL_MOD, fd, &mut event))?;
         Ok(())
     }
 
-    pub fn remove_interest(&self, fd: RawFd) -> io::Result<()> {
+    pub fn remove_interest(&self, key: Key) -> io::Result<()> {
+        let fd = self.clients.get(&key).unwrap().as_raw_fd();
         syscall!(epoll_ctl(self.pollfd, EPOLL_CTL_DEL, fd, std::ptr::null_mut()))?;
         Ok(())
+    }
+
+    fn listen() -> epoll_event {
+        epoll_event {
+            events: EPOLLIN as u32,
+            u64: SERVER_KEY,
+        }
     }
 
     pub fn read_event(key: Key) -> epoll_event {
@@ -103,6 +120,27 @@ impl Server {
             events: (EPOLLONESHOT | EPOLLOUT) as u32,
             u64: key,
         }
+    }
+
+    pub fn recv(&mut self, key: Key) -> io::Result<()> {
+        let mut buf = String::new();
+        if let Some(client) = self.clients.get_mut(&key) {
+            client.read_to_string(&mut buf)?;
+            println!("#{key} RECEIVED: |{buf}|");
+        } else {
+            println!("server: invalid key {key}");
+        }
+        Ok(())
+    }
+
+    pub fn send(&mut self, key: Key) -> io::Result<()> {
+        if let Some(client) = self.clients.get_mut(&key) {
+            client.write_all(b"message received")?;
+            client.shutdown(std::net::Shutdown::Both)?;
+        } else {
+            println!("server: invalid key {key}");
+        }
+        Ok(())
     }
 }
 
