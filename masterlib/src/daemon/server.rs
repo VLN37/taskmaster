@@ -22,6 +22,7 @@ pub struct Server {
     pub key: u64,
     ready: bool,
 }
+
 impl Server {
     pub fn new() -> Server {
         Server::default()
@@ -122,20 +123,36 @@ impl Server {
         }
     }
 
-    pub fn recv(&mut self, key: Key) -> io::Result<()> {
+    pub fn recv(&mut self, key: Key) -> io::Result<String> {
         let mut buf = String::new();
+        let err: io::Result<String> =
+            Err(io::Error::from_raw_os_error(io::ErrorKind::BrokenPipe as i32));
         if let Some(client) = self.clients.get_mut(&key) {
-            client.read_to_string(&mut buf)?;
-            println!("#{key} RECEIVED: |{buf}|");
+            match client.read_to_string(&mut buf) {
+                Ok(bytes) => {
+                    if bytes == 0 {
+                        println!("#{key} DROPPED BY CLIENT (READ 0 BYTES)");
+                        println!("{err:?}");
+                        return err;
+                    }
+                    println!("#{key} RECEIVED: |{}|", buf.escape_default());
+                    Ok(buf)
+                }
+                Err(e) => {
+                    self.remove_interest(key)?;
+                    self.clients.remove(&key);
+                    println!("{key} removed from server due to: {e}");
+                    Err(e)
+                }
+            }
         } else {
-            println!("server: invalid key {key}");
+            panic!("server: invalid key {key}");
         }
-        Ok(())
     }
 
-    pub fn send(&mut self, key: Key) -> io::Result<()> {
+    pub fn send(&mut self, key: Key, msg: &String) -> io::Result<()> {
         if let Some(client) = self.clients.get_mut(&key) {
-            client.write_all(b"message received")?;
+            client.write_all(msg.as_bytes())?;
             client.shutdown(std::net::Shutdown::Both)?;
         } else {
             println!("server: invalid key {key}");

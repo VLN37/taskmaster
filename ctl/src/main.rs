@@ -15,8 +15,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             Ok(_) => (),
             Err(e) => println!("stdin: {e}"),
         };
-        buf.pop();
-        println!("{:10}: {}", "user", buf);
+        let mut stuff = buf.clone();
+        stuff.pop();
+        println!("{:10}: {}", "user", stuff);
         stream
             .write_all(buf.as_bytes())
             .unwrap_or_else(|e| println!("client error: {e:?}"));
