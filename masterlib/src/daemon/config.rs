@@ -10,8 +10,10 @@ pub struct TaskMasterConfig {
     pub programs: HashMap<String, Program>,
 }
 
-pub fn read(file: File) -> Result<TaskMasterConfig, serde_yaml::Error> {
-    serde_yaml::from_reader(file)
+impl TaskMasterConfig {
+    pub fn read(file: File) -> Result<TaskMasterConfig, serde_yaml::Error> {
+        serde_yaml::from_reader(file)
+    }
 }
 
 impl From<File> for TaskMasterConfig {
@@ -33,7 +35,7 @@ mod test {
         let remove_crate_name = manifest.find("/masterlib").unwrap();
         let root = format!("{}/{}", &manifest[..remove_crate_name], crate::CONFIG_PATH);
         let f = std::fs::File::open(root).expect("Could not open file.");
-        let config = self::read(f);
+        let config = self::TaskMasterConfig::read(f);
         assert!(config.is_ok());
     }
 }

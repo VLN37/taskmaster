@@ -2,6 +2,7 @@ mod status;
 
 pub use self::status::Status;
 use masterlib::daemon::{
+    request_factory::RequestFactory,
     server::{Key, Server, SERVER_KEY},
     BackEnd,
 };
@@ -12,6 +13,7 @@ pub struct TaskMaster {
     pub server: Server,
     pub backend: BackEnd,
     pub status: Status,
+    pub factory: RequestFactory,
 }
 
 impl TaskMaster {
@@ -31,27 +33,36 @@ impl TaskMaster {
         self.server.epoll_wait()?;
         for ev in self.server.get_events() {
             let key: Key = ev.u64;
-            match key {
-                SERVER_KEY => {
-                    if let Ok(client_key) = self.server.accept() {
-                        println!("#{} ACCEPTED", self.server.key);
-                        self.backend.clients.insert(self.server.key, client_key);
-                    }
+            if key == SERVER_KEY {
+                if self.server.accept().is_ok() {
+                    println!("#{} ACCEPTED", self.server.key);
                 }
-                key => {
-                    if (ev.events & libc::EPOLLIN as u32) != 0 {
-                        self.server.recv(key)?;
-                        println!("#{key} REQUEST READ");
+                continue;
+            }
+            if (ev.events & libc::EPOLLIN as u32) != 0 {
+                if let Ok(mut msg) = self.server.recv(key) {
+                    self.factory.insert(key, &mut msg);
+                    println!("#{key} REQUEST READ");
+                    if let Some(request) = self.factory.parse(key) {
+                        self.backend.clients.insert(key, request);
                         self.server.modify_interest(key, Server::write_event(key))?;
-                    } else if (ev.events & libc::EPOLLOUT as u32) != 0 {
-                        self.server.send(key)?;
-                        println!("#{key} RESPONSE SENT");
                     } else {
-                        let ev = ev.events;
-                        println!("Unexpected event: {}", ev);
+                        self.server.modify_interest(key, Server::read_event(key))?;
                     }
+                } else {
+                    self.server.clients.remove(&key);
+                    continue;
                 }
-            };
+            } else if (ev.events & libc::EPOLLOUT as u32) != 0 {
+                let msg = self.backend.get_response_for(key);
+                self.server.send(key, &msg)?;
+                // should close the request when Response object is finished
+                // we will know if the backend is done with it, now we don't
+                println!("#{key} RESPONSE SENT");
+            } else {
+                let ev = ev.events;
+                println!("Unexpected event: {}", ev);
+            }
         }
         Ok(())
     }
