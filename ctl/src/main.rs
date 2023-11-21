@@ -1,9 +1,7 @@
-use std::{
-    error::Error,
-    io::{Read, Write},
-    net::Shutdown,
-    os::unix::net::UnixStream,
-};
+use std::error::Error;
+use std::io::{Read, Write};
+use std::net::Shutdown;
+use std::os::unix::net::UnixStream;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut buf = String::new();

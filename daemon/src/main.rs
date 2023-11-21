@@ -1,6 +1,7 @@
 mod taskmaster;
 
 use std::error::Error;
+
 use taskmaster::{Status, TaskMaster};
 
 fn main() -> Result<(), Box<dyn Error>> {

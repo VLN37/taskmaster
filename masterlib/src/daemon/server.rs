@@ -1,32 +1,36 @@
-use crate::syscall;
+use std::collections::HashMap;
+use std::io;
+use std::io::{Read, Write};
+use std::os::fd::{AsRawFd, RawFd};
+use std::os::unix::net::{UnixListener, UnixStream};
+use std::path::Path;
+
 use libc::{
-    epoll_event, EPOLLIN, EPOLLONESHOT, EPOLLOUT, EPOLL_CTL_ADD, EPOLL_CTL_DEL,
+    epoll_event,
+    EPOLLIN,
+    EPOLLONESHOT,
+    EPOLLOUT,
+    EPOLL_CTL_ADD,
+    EPOLL_CTL_DEL,
     EPOLL_CTL_MOD,
 };
-use std::collections::HashMap;
-use std::io::{Read, Write};
-use std::os::{
-    fd::{AsRawFd, RawFd},
-    unix::net::{UnixListener, UnixStream},
-};
-use std::{io, path::Path};
+
+use crate::syscall;
 
 pub type Key = u64;
 pub const SERVER_KEY: Key = 42;
 
 pub struct Server {
-    pub socket: UnixListener,
-    pub events: Vec<epoll_event>,
-    pub pollfd: RawFd,
+    pub socket:  UnixListener,
+    pub events:  Vec<epoll_event>,
+    pub pollfd:  RawFd,
     pub clients: HashMap<u64, UnixStream>,
-    pub key: u64,
-    ready: bool,
+    pub key:     u64,
+    ready:       bool,
 }
 
 impl Server {
-    pub fn new() -> Server {
-        Server::default()
-    }
+    pub fn new() -> Server { Server::default() }
 
     pub fn build(&mut self) -> io::Result<()> {
         self.pollfd = match self.create_epoll() {
@@ -55,9 +59,7 @@ impl Server {
         }
     }
 
-    pub fn get_events(&self) -> Vec<epoll_event> {
-        self.events.clone()
-    }
+    pub fn get_events(&self) -> Vec<epoll_event> { self.events.clone() }
 
     pub fn create_epoll(&mut self) -> io::Result<RawFd> {
         let fd = syscall!(epoll_create1(0))?;
@@ -105,21 +107,21 @@ impl Server {
     fn listen() -> epoll_event {
         epoll_event {
             events: EPOLLIN as u32,
-            u64: SERVER_KEY,
+            u64:    SERVER_KEY,
         }
     }
 
     pub fn read_event(key: Key) -> epoll_event {
         epoll_event {
             events: (EPOLLONESHOT | EPOLLIN) as u32,
-            u64: key,
+            u64:    key,
         }
     }
 
     pub fn write_event(key: Key) -> epoll_event {
         epoll_event {
             events: (EPOLLONESHOT | EPOLLOUT) as u32,
-            u64: key,
+            u64:    key,
         }
     }
 

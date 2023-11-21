@@ -1,5 +1,6 @@
-use masterlib::daemon::TaskMasterConfig;
 use std::{fs, process};
+
+use masterlib::daemon::TaskMasterConfig;
 
 fn main() {
     let file = fs::File::open(masterlib::CONFIG_PATH).expect("Could not open file.");

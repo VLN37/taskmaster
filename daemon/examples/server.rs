@@ -45,7 +45,6 @@ fn _other() -> Result<(), Box<dyn Error>> {
                 continue;
             }
         };
-        // backend.process(&mut client).unwrap_or_else(|x| println!("err: {x:?}"));
     }
     Ok(())
 }

@@ -1,6 +1,8 @@
-use crate::daemon::config::exceptions::ImproperlyConfigured;
-use serde::{Deserialize, Serialize};
 pub use std::str::FromStr;
+
+use serde::{Deserialize, Serialize};
+
+use crate::daemon::config::exceptions::ImproperlyConfigured;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum RestartOption {

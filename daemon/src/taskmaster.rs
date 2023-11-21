@@ -1,25 +1,24 @@
 mod status;
 
+use std::thread::sleep;
+use std::{io, time};
+
+use masterlib::daemon::request_factory::RequestFactory;
+use masterlib::daemon::server::{Key, Server, SERVER_KEY};
+use masterlib::daemon::BackEnd;
+
 pub use self::status::Status;
-use masterlib::daemon::{
-    request_factory::RequestFactory,
-    server::{Key, Server, SERVER_KEY},
-    BackEnd,
-};
-use std::{io, thread::sleep, time};
 
 #[derive(Default)]
 pub struct TaskMaster {
-    pub server: Server,
+    pub server:  Server,
     pub backend: BackEnd,
-    pub status: Status,
+    pub status:  Status,
     pub factory: RequestFactory,
 }
 
 impl TaskMaster {
-    pub fn new() -> TaskMaster {
-        Self::default()
-    }
+    pub fn new() -> TaskMaster { Self::default() }
 
     pub fn build(&mut self) -> io::Result<()> {
         self.server.build()?;
@@ -67,7 +66,5 @@ impl TaskMaster {
         Ok(())
     }
 
-    pub fn reload(&mut self) -> io::Result<()> {
-        todo!()
-    }
+    pub fn reload(&mut self) -> io::Result<()> { todo!() }
 }

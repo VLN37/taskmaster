@@ -4,7 +4,5 @@ use std::fmt;
 pub struct ImproperlyConfigured;
 
 impl fmt::Display for ImproperlyConfigured {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "invalid option")
-    }
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "invalid option") }
 }

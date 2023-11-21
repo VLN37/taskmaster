@@ -1,6 +1,10 @@
+enum_discrim_align_threshold = 20
+struct_field_align_threshold = 20
 max_width = 88
-tab_spaces = 4
-fn_params_layout = "Tall"
-array_width = 68
-chain_width = 68
 fn_call_width = 68
+fn_single_line = true
+wrap_comments = true
+format_strings = true
+imports_granularity = "Module"
+imports_layout = "HorizontalVertical"
+group_imports = "StdExternalCrate"

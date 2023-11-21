@@ -1,5 +1,7 @@
-use masterlib::daemon::{config::Program, TaskMasterConfig};
 use std::fs;
+
+use masterlib::daemon::config::Program;
+use masterlib::daemon::TaskMasterConfig;
 
 fn main() {
     let var = Program::new();

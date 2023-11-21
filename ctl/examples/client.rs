@@ -1,4 +1,5 @@
-use std::{io::Write, os::unix::net::UnixStream};
+use std::io::Write;
+use std::os::unix::net::UnixStream;
 
 /// cargo run -p ctl --example client
 fn main() {

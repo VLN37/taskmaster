@@ -1,5 +1,7 @@
-use super::{request::Request, server::Key};
 use std::collections::HashMap;
+
+use super::request::Request;
+use super::server::Key;
 
 #[derive(Default)]
 pub struct BackEnd {
@@ -7,11 +9,7 @@ pub struct BackEnd {
 }
 
 impl BackEnd {
-    pub fn new() -> BackEnd {
-        BackEnd::default()
-    }
+    pub fn new() -> BackEnd { BackEnd::default() }
 
-    pub fn get_response_for(&self, key: Key) -> String {
-        format!("Response for {key}")
-    }
+    pub fn get_response_for(&self, key: Key) -> String { format!("Response for {key}") }
 }

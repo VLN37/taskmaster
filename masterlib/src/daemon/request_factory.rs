@@ -1,6 +1,7 @@
 use std::collections::{HashMap, LinkedList, VecDeque};
 
-use super::{request::Request, server::Key};
+use super::request::Request;
+use super::server::Key;
 
 #[derive(Default)]
 pub struct RequestFactory {
@@ -8,9 +9,7 @@ pub struct RequestFactory {
 }
 
 impl RequestFactory {
-    pub fn new() -> RequestFactory {
-        Self::default()
-    }
+    pub fn new() -> RequestFactory { Self::default() }
 
     pub fn insert(&mut self, k: Key, buf: &mut str) {
         if let Some(requests) = self.clients.get_mut(&k) {
