@@ -127,15 +127,12 @@ impl Server {
 
     pub fn recv(&mut self, key: Key) -> io::Result<String> {
         let mut buf = String::new();
-        let err: io::Result<String> =
-            Err(io::Error::from_raw_os_error(io::ErrorKind::BrokenPipe as i32));
         if let Some(client) = self.clients.get_mut(&key) {
             match client.read_to_string(&mut buf) {
                 Ok(bytes) => {
                     if bytes == 0 {
                         println!("#{key} DROPPED BY CLIENT (READ 0 BYTES)");
-                        println!("{err:?}");
-                        return err;
+                        return Err(io::Error::from_raw_os_error(32));
                     }
                     println!("#{key} RECEIVED: |{}|", buf.escape_default());
                     Ok(buf)
