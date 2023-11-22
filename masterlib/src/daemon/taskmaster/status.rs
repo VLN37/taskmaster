@@ -1,4 +1,4 @@
-#[derive(Default)]
+#[derive(Default, Debug, PartialEq)]
 #[allow(dead_code)]
 pub enum Status {
     #[default]
