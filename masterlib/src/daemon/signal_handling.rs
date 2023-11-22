@@ -28,3 +28,31 @@ pub fn install_sighup_handler(handler: impl FnMut() + 'static) {
 
     unsafe { sigaction(Signal::SIGHUP as i32, &action, null_mut::<sigaction>()) };
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::daemon::taskmaster::{Status, TaskMaster};
+
+    #[test]
+    fn handler_test() {
+        let mut taskmaster = TaskMaster::new();
+        let ptr: *mut Status = &mut taskmaster.status;
+        unsafe {
+            install_sighup_handler(move || {
+                *ptr = Status::Reloading;
+            });
+        }
+        taskmaster.status = Status::Active;
+        assert_eq!(taskmaster.status, Status::Starting);
+        sighup_handler(libc::SIGHUP);
+        assert_eq!(taskmaster.status, Status::Reloading);
+        taskmaster.status = Status::Active;
+        sighup_handler(libc::SIGHUP);
+        assert_eq!(taskmaster.status, Status::Reloading);
+        taskmaster.status = Status::Active;
+        sighup_handler(libc::SIGHUP);
+        assert_eq!(taskmaster.status, Status::Reloading);
+        taskmaster.status = Status::Active;
+    }
+}
