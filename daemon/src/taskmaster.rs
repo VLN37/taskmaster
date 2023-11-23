@@ -4,9 +4,9 @@ use std::thread::sleep;
 use std::{io, time};
 
 pub use self::status::Status;
-use crate::daemon::request_factory::RequestFactory;
-use crate::daemon::server::{Key, Server, SERVER_KEY};
-use crate::daemon::BackEnd;
+use crate::request_factory::RequestFactory;
+use crate::server::{Key, Server, SERVER_KEY};
+use crate::BackEnd;
 
 #[derive(Default)]
 pub struct TaskMaster {

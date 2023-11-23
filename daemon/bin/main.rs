@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use masterlib::daemon::taskmaster::{Status, TaskMaster};
+use daemon::taskmaster::{Status, TaskMaster};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut taskmaster = TaskMaster::new();

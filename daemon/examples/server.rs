@@ -3,12 +3,12 @@ use std::io::Read;
 use std::os::unix::net::UnixListener;
 use std::path::Path;
 
-use masterlib::daemon::server::Server;
-use masterlib::daemon::BackEnd;
+use daemon::server::Server;
+use daemon::BackEnd;
 
 // cargo run -p daemon --example server
 fn main() {
-    let socket = Path::new(masterlib::SOCKET_PATH);
+    let socket = Path::new(common::SOCKET_PATH);
     if socket.exists() {
         std::fs::remove_file(socket).unwrap();
         println!("previous socket removed");

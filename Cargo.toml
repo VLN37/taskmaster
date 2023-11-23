@@ -1,3 +1,3 @@
 [workspace]
-members = ["masterlib", "daemon", "ctl"]
+members = ["common", "daemon", "ctl"]
 resolver = "1"

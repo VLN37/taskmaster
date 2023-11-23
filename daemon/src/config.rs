@@ -34,8 +34,9 @@ mod test {
     #[test]
     fn config_parse_test() {
         let manifest = String::from(env!("CARGO_MANIFEST_DIR"));
-        let remove_crate_name = manifest.find("/masterlib").unwrap();
-        let root = format!("{}/{}", &manifest[..remove_crate_name], crate::CONFIG_PATH);
+        println!("{manifest}");
+        let index = manifest.find("/daemon").unwrap();
+        let root = format!("{}/{}", &manifest[..index], common::CONFIG_PATH);
         let f = std::fs::File::open(root).expect("Could not open file.");
         let config = self::TaskMasterConfig::read(f);
         assert!(config.is_ok());

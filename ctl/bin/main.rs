@@ -8,7 +8,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     buf.reserve(500);
     println!("Ready for input");
     loop {
-        let mut stream = UnixStream::connect(masterlib::SOCKET_PATH).unwrap();
+        let mut stream = UnixStream::connect(common::SOCKET_PATH).unwrap();
         match std::io::stdin().read_line(&mut buf) {
             Ok(_) => (),
             Err(e) => println!("stdin: {e}"),

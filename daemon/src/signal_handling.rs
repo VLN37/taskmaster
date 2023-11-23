@@ -32,7 +32,7 @@ pub fn install_sighup_handler(handler: impl FnMut() + 'static) {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::daemon::taskmaster::{Status, TaskMaster};
+    use crate::taskmaster::{Status, TaskMaster};
 
     #[test]
     fn handler_test() {
@@ -43,7 +43,6 @@ mod test {
                 *ptr = Status::Reloading;
             });
         }
-        taskmaster.status = Status::Active;
         assert_eq!(taskmaster.status, Status::Starting);
         sighup_handler(libc::SIGHUP);
         assert_eq!(taskmaster.status, Status::Reloading);

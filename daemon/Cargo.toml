@@ -1,10 +1,20 @@
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
 [package]
 name = "daemon"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "daemon"
+path = "bin/main.rs"
+
+[lib]
+name = "daemon"
+path = "src/lib.rs"
 
 [dependencies]
-masterlib = { path = "../masterlib" }
+common = { path = "../common" }
 libc = ">=0.2"
+serde = { version = "1.0.*", features = ["derive"] }
+serde_yaml = "0.9.*"

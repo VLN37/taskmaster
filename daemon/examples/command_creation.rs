@@ -1,9 +1,9 @@
 use std::{fs, process};
 
-use masterlib::daemon::TaskMasterConfig;
+use daemon::TaskMasterConfig;
 
 fn main() {
-    let file = fs::File::open(masterlib::CONFIG_PATH).expect("Could not open file.");
+    let file = fs::File::open(common::CONFIG_PATH).expect("Could not open file.");
     let config = match TaskMasterConfig::read(file) {
         Ok(r) => r,
         Err(err) => panic!("Fuck: {:?}", err),
