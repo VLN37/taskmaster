@@ -3,7 +3,7 @@ use std::io::Read;
 use std::os::unix::net::UnixListener;
 use std::path::Path;
 
-use daemon::server::Server;
+use common::server::Server;
 use daemon::BackEnd;
 
 // cargo run -p daemon --example server

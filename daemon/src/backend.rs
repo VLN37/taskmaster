@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
-use super::request::Request;
-use super::server::Key;
+use common::server::{Key, Request};
 
 #[derive(Default)]
 pub struct BackEnd {

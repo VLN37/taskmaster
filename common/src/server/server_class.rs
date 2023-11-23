@@ -5,7 +5,6 @@ use std::os::fd::{AsRawFd, RawFd};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::Path;
 
-use common::syscall;
 use libc::{
     epoll_event,
     EPOLLIN,
@@ -16,8 +15,8 @@ use libc::{
     EPOLL_CTL_MOD,
 };
 
-pub type Key = u64;
-pub const SERVER_KEY: Key = 42;
+use super::{Key, SERVER_KEY};
+use crate::syscall;
 
 pub struct Server {
     pub socket:  UnixListener,
@@ -161,11 +160,11 @@ impl Server {
 
 impl Default for Server {
     fn default() -> Server {
-        if Path::new(common::SOCKET_PATH).exists() {
-            std::fs::remove_file(common::SOCKET_PATH).unwrap();
+        if Path::new(crate::SOCKET_PATH).exists() {
+            std::fs::remove_file(crate::SOCKET_PATH).unwrap();
             println!("previous socket removed");
         }
-        let socket = match UnixListener::bind(common::SOCKET_PATH) {
+        let socket = match UnixListener::bind(crate::SOCKET_PATH) {
             Ok(val) => val,
             Err(e) => panic!("{e:?}"),
         };

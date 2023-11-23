@@ -1,7 +1,7 @@
 use std::collections::{HashMap, LinkedList, VecDeque};
 
 use super::request::Request;
-use super::server::Key;
+use super::Key;
 
 #[derive(Default)]
 pub struct RequestFactory {
