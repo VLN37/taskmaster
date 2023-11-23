@@ -15,6 +15,6 @@ path = "src/lib.rs"
 
 [dependencies]
 common = { path = "../common" }
-libc = ">=0.2"
+libc = { workspace = true }
 serde = { version = "1.0.*", features = ["derive"] }
 serde_yaml = "0.9.*"

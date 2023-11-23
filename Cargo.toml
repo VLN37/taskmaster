@@ -1,3 +1,6 @@
 [workspace]
 members = ["common", "daemon", "ctl"]
 resolver = "1"
+
+[workspace.dependencies]
+libc = ">=0.2"
