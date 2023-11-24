@@ -15,7 +15,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         // while taskmaster.serve_routine().is_ok() {}
         '_main: loop {
             match taskmaster.serve_routine() {
-                Ok(_) => continue,
+                Ok(_) => match taskmaster.status {
+                    Status::Reloading => break '_main,
+                    _ => continue,
+                },
                 Err(_) => break '_main,
             }
         }

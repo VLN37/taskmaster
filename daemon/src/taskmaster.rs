@@ -5,6 +5,7 @@ use std::{io, time};
 use common::server::{Key, RequestFactory, Server, SERVER_KEY};
 pub use status::Status;
 
+use crate::signal_handling::install_sighup_handler;
 use crate::BackEnd;
 
 #[derive(Default)]
@@ -21,6 +22,11 @@ impl TaskMaster {
     pub fn build(&mut self) -> io::Result<()> {
         self.server.build()?;
         self.status = Status::Active;
+        let ptr: *mut Status = &mut self.status;
+
+        install_sighup_handler(move || unsafe {
+            *ptr = Status::Reloading;
+        });
         Ok(())
     }
 
@@ -64,5 +70,12 @@ impl TaskMaster {
         Ok(())
     }
 
-    pub fn reload(&mut self) -> io::Result<()> { todo!() }
+    pub fn reload(&mut self) -> io::Result<()> {
+        if let Status::Reloading = self.status {
+            println!("Reloading!!!");
+            // self.backend.update().expect("Failed to reload config");
+            self.status = Status::Active;
+        };
+        Ok(())
+    }
 }
