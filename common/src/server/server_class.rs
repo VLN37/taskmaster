@@ -75,8 +75,11 @@ impl Server {
             1024,
             1000 as libc::c_int,
         )) {
-            Ok(v) => v,
-            Err(e) => panic!("error during epoll wait: {}", e),
+            Ok(res) => res,
+            Err(e) => match e.kind() {
+                io::ErrorKind::Interrupted => return Ok(()),
+                _ => panic!("error during epoll wait: {}", e),
+            },
         };
 
         // safe  as long as the kernel does nothing wrong - copied from mio
