@@ -42,9 +42,6 @@ impl BackEnd {
     }
 
     fn update_state(&mut self, new_config: TaskMasterConfig) {
-        print_programs("current programs", &self.config.programs);
-        print_programs("new programs", &new_config.programs);
-
         let programs_to_kill = get_diff(&self.config.programs, &new_config.programs);
         print_programs("programs to kill", &programs_to_kill);
         let programs_to_spawn = get_diff(&new_config.programs, &self.config.programs);
@@ -68,7 +65,26 @@ fn get_diff(
 ) -> HashMap<String, Program> {
     first
         .iter()
-        .filter(|&(key, _)| !second.contains_key(key))
+        .filter(|&(key, program)| {
+            !second.contains_key(key) || has_major_changes(program, &second[key])
+        })
         .map(|(key, program)| (key.to_owned(), program.clone()))
         .collect()
+}
+
+fn has_major_changes(first: &Program, second: &Program) -> bool {
+    first.command != second.command
+        || first.args != second.args
+        // || first.status != second.status
+        // || first.processes != second.processes
+        // || first.run_at_startup != second.run_at_startup
+        // || first.retry_start_count != second.retry_start_count
+        // || first.restart != second.restart
+        // || first.graceful_exit != second.graceful_exit
+        // || first.ttk != second.ttk
+        // || first.success_codes != second.success_codes.clone()
+        // || first.succesful_start_after != second.succesful_start_after
+        || first.workdir != second.workdir
+        || first.environment_variables != second.environment_variables
+        || first.umask != second.umask
 }
