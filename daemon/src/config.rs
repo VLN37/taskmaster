@@ -7,10 +7,13 @@ pub mod exceptions;
 pub mod structs;
 pub use structs::{Program, RestartOption, Signal};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize, PartialEq)]
 pub struct TaskMasterConfig {
     pub programs: HashMap<String, Program>,
 }
+
+#[derive(Copy, Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct ConfigError {}
 
 impl TaskMasterConfig {
     pub fn read(file: File) -> Result<TaskMasterConfig, serde_yaml::Error> {

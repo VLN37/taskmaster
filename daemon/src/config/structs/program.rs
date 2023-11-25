@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{ProgramStatus, RestartOption, Signal};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct Program {
     pub command:               String,
@@ -42,6 +42,29 @@ impl Default for Program {
             workdir:               std::env::var("CWD").unwrap_or(String::from("/")),
             environment_variables: String::from("ANSWER=42"),
             umask:                 420,
+        }
+    }
+}
+
+// impl Copy for Program {}
+
+impl Clone for Program {
+    fn clone(&self) -> Self {
+        Self {
+            command:               self.command.clone(),
+            args:                  self.args.clone(),
+            status:                self.status,
+            processes:             self.processes,
+            run_at_startup:        self.run_at_startup,
+            retry_start_count:     self.retry_start_count,
+            restart:               self.restart,
+            graceful_exit:         self.graceful_exit,
+            ttk:                   self.ttk,
+            success_codes:         self.success_codes.clone(),
+            succesful_start_after: self.succesful_start_after,
+            workdir:               self.workdir.clone(),
+            environment_variables: self.environment_variables.clone(),
+            umask:                 self.umask,
         }
     }
 }
