@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::fs::File;
 
 use common::server::{Key, Request};
 use common::CONFIG_PATH;
@@ -14,24 +13,22 @@ pub struct BackEnd {
     pub clients: HashMap<Key, Request>,
 }
 
-fn read_config_file() -> TaskMasterConfig {
-    let config_file = File::open(CONFIG_PATH).expect("Failed to open config file");
-    TaskMasterConfig::from(config_file)
-}
-
 impl BackEnd {
-    pub fn new() -> BackEnd { BackEnd::default() }
+    pub fn new(config: TaskMasterConfig) -> BackEnd {
+        BackEnd {
+            config,
+            ..Default::default()
+        }
+    }
 
     pub fn get_response_for(&self, key: Key) -> String { format!("Response for {key}") }
 
-    pub fn build(&mut self) {
-        self.config = read_config_file();
+    pub fn start(&mut self) {
+        // self.config = read_config_file();
         print_programs("initial programs", &self.config.programs);
     }
 
-    pub fn update(&mut self) -> Result<(), ConfigError> {
-        let new_config = read_config_file();
-
+    pub fn update(&mut self, new_config: TaskMasterConfig) -> Result<(), ConfigError> {
         if self.config != new_config {
             info!("Updating config");
             self.update_state(new_config);

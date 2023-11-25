@@ -1,4 +1,5 @@
 pub mod status;
+use std::fs::File;
 use std::io;
 
 use common::server::{Key, RequestFactory, Server, SERVER_KEY};
@@ -21,13 +22,15 @@ impl TaskMaster {
 
     pub fn build(&mut self) -> io::Result<()> {
         self.server.build()?;
-        self.status = Status::Active;
-        self.backend.build();
-        let ptr: *mut Status = &mut self.status;
+        self.backend = BackEnd::new(File::open(CONFIG_PATH)?.into());
 
+        self.backend.start();
+
+        let ptr: *mut Status = &mut self.status;
         install_sighup_handler(move || unsafe {
             *ptr = Status::Reloading;
         });
+        self.status = Status::Active;
         Ok(())
     }
 
