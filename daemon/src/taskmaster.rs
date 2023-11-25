@@ -72,7 +72,7 @@ impl TaskMaster {
     pub fn reload(&mut self) -> io::Result<()> {
         if let Status::Reloading = self.status {
             println!("Reloading!!!");
-            // self.backend.update().expect("Failed to reload config");
+            self.backend.update().expect("Failed to reload config");
             self.status = Status::Active;
         };
         Ok(())
