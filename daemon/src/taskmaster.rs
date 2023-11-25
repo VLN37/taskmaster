@@ -21,6 +21,7 @@ impl TaskMaster {
     pub fn build(&mut self) -> io::Result<()> {
         self.server.build()?;
         self.status = Status::Active;
+        self.backend.build();
         let ptr: *mut Status = &mut self.status;
 
         install_sighup_handler(move || unsafe {
