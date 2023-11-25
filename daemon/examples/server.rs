@@ -1,9 +1,11 @@
 use std::error::Error;
+use std::fs::File;
 use std::io::Read;
 use std::os::unix::net::UnixListener;
 use std::path::Path;
 
 use common::server::Server;
+use common::CONFIG_PATH;
 use daemon::BackEnd;
 use logger::{debug, info, warning};
 
@@ -31,7 +33,11 @@ fn main() {
 fn _other() -> Result<(), Box<dyn Error>> {
     let mut server = Server::new();
     server.build()?;
-    let _backend = BackEnd::new();
+    let _backend = BackEnd::new(
+        File::open(CONFIG_PATH)
+            .expect("Failed to open config file")
+            .into(),
+    );
     let epollfd = server.create_epoll()?;
 
     debug!("epollfd {epollfd}");
