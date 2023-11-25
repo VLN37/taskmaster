@@ -1,6 +1,5 @@
 pub mod status;
-use std::thread::sleep;
-use std::{io, time};
+use std::io;
 
 use common::server::{Key, RequestFactory, Server, SERVER_KEY};
 pub use status::Status;
@@ -31,7 +30,6 @@ impl TaskMaster {
     }
 
     pub fn serve_routine(&mut self) -> io::Result<()> {
-        sleep(time::Duration::from_secs(1));
         println!("#{} AWAITING", self.server.key);
         self.server.epoll_wait()?;
         for ev in self.server.get_events() {
