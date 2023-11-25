@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::config::exceptions::ImproperlyConfigured;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
 pub enum RestartOption {
     ALWAYS,
     NEVER,
