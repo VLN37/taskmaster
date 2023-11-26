@@ -2,7 +2,9 @@ command: "bash"
 programs:
     bash:
         command: "bash"
-        # args: "-c 'echo oi'"
+        args:
+          - "-c"
+          - "echo oi"
         processes: 3
         # run_at_startup: true,
         # retry_start_count: 3,
@@ -16,6 +18,6 @@ programs:
         # umask:                 420,
     echo:
         command: "echo"
-        args: "the arguments"
+        args: ["the arguments"]
     env:
         command: "env"

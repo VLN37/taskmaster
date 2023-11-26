@@ -6,7 +6,7 @@ use super::{ProgramStatus, RestartOption, Signal};
 #[serde(default)]
 pub struct Program {
     pub command:               String,
-    pub args:                  String,
+    pub args:                  Vec<String>,
     pub status:                ProgramStatus,
     pub processes:             u32,
     pub run_at_startup:        bool,
@@ -17,7 +17,7 @@ pub struct Program {
     pub success_codes:         Vec<u32>,
     pub succesful_start_after: u32, // seconds
     pub workdir:               String,
-    pub environment_variables: String,
+    pub environment_variables: Vec<String>,
     pub umask:                 u32,
 }
 
@@ -29,7 +29,7 @@ impl Default for Program {
     fn default() -> Program {
         Program {
             command:               String::from("tail -f"),
-            args:                  String::from(""),
+            args:                  vec![String::from("")],
             status:                ProgramStatus::Starting,
             processes:             1,
             run_at_startup:        true,
@@ -40,7 +40,7 @@ impl Default for Program {
             success_codes:         [0].to_vec(),
             succesful_start_after: 5,
             workdir:               std::env::var("CWD").unwrap_or(String::from("/")),
-            environment_variables: String::from("ANSWER=42"),
+            environment_variables: vec![String::from("ANSWER=42")],
             umask:                 420,
         }
     }

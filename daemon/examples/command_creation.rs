@@ -10,7 +10,7 @@ fn main() {
     };
     let program = &config.programs["echo"];
     process::Command::new(&program.command)
-        .arg(&program.args)
+        .args(program.args.to_vec())
         .env("ANSWER", "42")
         .spawn()
         .expect("fuck");
