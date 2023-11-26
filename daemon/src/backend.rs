@@ -13,6 +13,16 @@ pub struct BackEnd {
     pub clients: HashMap<Key, Request>,
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum ProgramStatus {
+    Starting,
+    FailedToStart,
+    Active,
+    GracefulExit,
+    Killed,
+    FailedExit,
+}
+
 impl BackEnd {
     pub fn new(config: TaskMasterConfig) -> BackEnd {
         BackEnd {

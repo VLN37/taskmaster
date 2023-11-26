@@ -1,13 +1,12 @@
 use serde::{Deserialize, Serialize};
 
-use super::{ProgramStatus, RestartOption, Signal};
+use super::{RestartOption, Signal};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct Program {
     pub command:               String,
     pub args:                  Vec<String>,
-    pub status:                ProgramStatus,
     pub processes:             u32,
     pub run_at_startup:        bool,
     pub retry_start_count:     u32,
@@ -30,7 +29,6 @@ impl Default for Program {
         Program {
             command:               String::from("tail -f"),
             args:                  vec![String::from("")],
-            status:                ProgramStatus::Starting,
             processes:             1,
             run_at_startup:        true,
             retry_start_count:     3,
@@ -53,7 +51,6 @@ impl Clone for Program {
         Self {
             command:               self.command.clone(),
             args:                  self.args.clone(),
-            status:                self.status,
             processes:             self.processes,
             run_at_startup:        self.run_at_startup,
             retry_start_count:     self.retry_start_count,
