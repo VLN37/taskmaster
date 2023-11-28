@@ -1,5 +1,5 @@
 [workspace]
-members = ["common", "daemon", "ctl"]
+members = ["common", "daemon", "ctl", "logger"]
 resolver = "1"
 
 [workspace.dependencies]
