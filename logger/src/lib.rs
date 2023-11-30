@@ -8,6 +8,26 @@ pub struct Logger {
     pub log_level: LogLevel,
 }
 
+impl Logger {
+    pub fn new(module: &str) -> Logger {
+        Logger {
+            module:    module.into(),
+            log_level: global_log_level().clone(),
+        }
+    }
+
+    fn log(&self, log_level: LogLevel, msg: &str) {
+        if self.log_level >= *global_log_level() {
+            println!("[{}][{:5}] {}", current_time(), log_level, msg);
+        }
+    }
+
+    pub fn debug(&self, msg: &str) { self.log(LogLevel::DEBUG, msg) }
+    pub fn info(&self, msg: &str) { self.log(LogLevel::INFO, msg) }
+    pub fn warn(&self, msg: &str) { self.log(LogLevel::WARN, msg) }
+    pub fn error(&self, msg: &str) { self.log(LogLevel::ERROR, msg) }
+}
+
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
 pub enum LogLevel {
     ERROR,
@@ -19,23 +39,25 @@ pub enum LogLevel {
 impl From<&str> for LogLevel {
     fn from(value: &str) -> Self {
         match value {
-            "DEBUG" => LogLevel::DEBUG,
+            "ERROR" => LogLevel::ERROR,
             "INFO" => LogLevel::INFO,
             "WARN" => LogLevel::WARN,
             "WARNING" => LogLevel::WARN,
-            "ERROR" => LogLevel::ERROR,
-            _ => panic!("invalid"),
+            "DEBUG" => LogLevel::DEBUG,
+            _ => panic!("{value} is not a valid LogLevel"),
         }
     }
 }
 
-impl LogLevel {
-    fn global_log_level() -> &'static LogLevel {
-        static LOG_LEVEL: OnceLock<LogLevel> = OnceLock::new();
-        match env::var("LOG_LEVEL") {
-            Ok(var) => return LOG_LEVEL.get_or_init(|| LogLevel::from(var.as_str())),
-            Err(_) => return LOG_LEVEL.get_or_init(|| LogLevel::INFO),
-        }
+impl std::fmt::Display for LogLevel {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let val = match self {
+            LogLevel::ERROR => "ERROR",
+            LogLevel::WARN => "WARN",
+            LogLevel::INFO => "INFO",
+            LogLevel::DEBUG => "DEBUG",
+        };
+        formatter.pad(val)
     }
 }
 
