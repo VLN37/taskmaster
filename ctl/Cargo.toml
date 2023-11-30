@@ -15,4 +15,5 @@ path = "src/lib.rs"
 
 [dependencies]
 libc = { workspace = true }
-common = { path = "../common" }
+logger = { workspace = true }
+common = { workspace = true }
