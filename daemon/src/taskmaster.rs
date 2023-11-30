@@ -16,7 +16,7 @@ pub struct TaskMaster {
 }
 
 impl TaskMaster {
-    pub fn new() -> TaskMaster { Self::default() }
+    pub fn new() -> TaskMaster { TaskMaster::default() }
 
     pub fn build(&mut self) -> io::Result<()> {
         self.server.build()?;
