@@ -2,6 +2,7 @@ use std::mem::MaybeUninit;
 use std::ptr::null_mut;
 
 use libc::{c_int, sigaction, sigemptyset, SA_SIGINFO};
+use logger::debug;
 
 use super::config::Signal;
 
@@ -11,9 +12,9 @@ static mut SIGHUP_CLOSURE: Option<Box<dyn FnMut()>> = None;
 extern "C" fn sighup_handler(_sig: c_int) {
     unsafe {
         if let Some(ref mut handler) = SIGHUP_CLOSURE {
-            println!("calling closure");
+            debug!("calling closure");
             handler();
-            println!("closure called");
+            debug!("closure called");
         }
     }
 }

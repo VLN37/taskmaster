@@ -30,10 +30,10 @@ impl Logger {
 
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
 pub enum LogLevel {
-    ERROR,
-    WARN,
-    INFO,
     DEBUG,
+    INFO,
+    WARN,
+    ERROR,
 }
 
 impl From<&str> for LogLevel {
@@ -84,36 +84,44 @@ pub fn __log(log_level: LogLevel, file: String, msg: &String) {
 #[macro_export]
 macro_rules! debug {
     ($($arg:tt)*) => {{
-        logger::__log(logger::LogLevel::DEBUG,
-        file!().to_string(),
-        &format_args!($($arg)*).to_string());
+        logger::__log(
+            logger::LogLevel::DEBUG,
+            file!().to_string(),
+            &format_args!($($arg)*).to_string()
+        );
     }};
 }
 
 #[macro_export]
 macro_rules! info {
     ($($arg:tt)*) => {{
-        logger::__log(logger::LogLevel::INFO,
-        file!().to_string(),
-        &format_args!($($arg)*).to_string());
+        logger::__log(
+            logger::LogLevel::INFO,
+            file!().to_string(),
+            &format_args!($($arg)*).to_string()
+        );
     }};
 }
 
 #[macro_export]
 macro_rules! warning {
     ($($arg:tt)*) => {{
-        logger::__log(logger::LogLevel::WARN,
-        file!().to_string(),
-        &format_args!($($arg)*).to_string());
+        logger::__log(
+            logger::LogLevel::WARN,
+            file!().to_string(),
+            &format_args!($($arg)*).to_string()
+        );
     }};
 }
 
 #[macro_export]
 macro_rules! error {
     ($($arg:tt)*) => {{
-        logger::__log(logger::LogLevel::ERROR,
-        file!().to_string(),
-        &format_args!($($arg)*).to_string());
+        logger::__log(
+            logger::LogLevel::ERROR,
+            file!().to_string(),
+            &format_args!($($arg)*).to_string()
+        );
     }};
 }
 

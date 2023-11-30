@@ -3,6 +3,7 @@ use std::fs::File;
 
 use common::server::{Key, Request};
 use common::CONFIG_PATH;
+use logger::{debug, info};
 
 use crate::config::{ConfigError, Program};
 use crate::TaskMasterConfig;
@@ -32,10 +33,10 @@ impl BackEnd {
         let new_config = read_config_file();
 
         if self.config != new_config {
-            println!("Updating config");
+            info!("Updating config");
             self.update_state(new_config);
         } else {
-            println!("No changes detected.");
+            info!("No changes detected.");
         }
 
         Ok(())
@@ -52,11 +53,11 @@ impl BackEnd {
 }
 
 fn print_programs(msg: &str, programs: &HashMap<String, Program>) {
-    println!("---- {msg}");
+    debug!("---- {msg}");
     let mut programs = programs.keys().collect::<Vec<_>>();
 
     programs.sort();
-    programs.iter().for_each(|p| println!("  {p}"));
+    programs.iter().for_each(|p| debug!("  {p}"));
 }
 
 fn get_diff(

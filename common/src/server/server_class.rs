@@ -14,6 +14,7 @@ use libc::{
     EPOLL_CTL_DEL,
     EPOLL_CTL_MOD,
 };
+use logger::{debug, error, info, warning};
 
 use super::{Key, SERVER_KEY};
 use crate::syscall;
@@ -51,7 +52,7 @@ impl Server {
                 Ok(self.key)
             }
             Err(e) => {
-                println!("{e:?}");
+                error!("{e:?}");
                 Err(e)
             }
         }
@@ -132,16 +133,16 @@ impl Server {
             match client.read_to_string(&mut buf) {
                 Ok(bytes) => {
                     if bytes == 0 {
-                        println!("#{key} DROPPED BY CLIENT (READ 0 BYTES)");
+                        warning!("#{key} DROPPED BY CLIENT (READ 0 BYTES)");
                         return Err(io::Error::from_raw_os_error(32));
                     }
-                    println!("#{key} RECEIVED: |{}|", buf.escape_default());
+                    debug!("#{key} RECEIVED: |{}|", buf.escape_default());
                     Ok(buf)
                 }
                 Err(e) => {
                     self.remove_interest(key)?;
                     self.clients.remove(&key);
-                    println!("{key} removed from server due to: {e}");
+                    warning!("{key} removed from server due to: {e}");
                     Err(e)
                 }
             }
@@ -155,7 +156,7 @@ impl Server {
             client.write_all(msg.as_bytes())?;
             client.shutdown(std::net::Shutdown::Both)?;
         } else {
-            println!("server: invalid key {key}");
+            error!("server: invalid key {key}");
         }
         Ok(())
     }
@@ -165,7 +166,7 @@ impl Default for Server {
     fn default() -> Server {
         if Path::new(crate::SOCKET_PATH).exists() {
             std::fs::remove_file(crate::SOCKET_PATH).unwrap();
-            println!("previous socket removed");
+            info!("previous socket removed");
         }
         let socket = match UnixListener::bind(crate::SOCKET_PATH) {
             Ok(val) => val,

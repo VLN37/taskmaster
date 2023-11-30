@@ -32,12 +32,14 @@ impl From<File> for TaskMasterConfig {
 
 #[cfg(test)]
 mod test {
+    use logger::debug;
+
     use super::*;
 
     #[test]
     fn config_parse_test() {
         let manifest = String::from(env!("CARGO_MANIFEST_DIR"));
-        println!("{manifest}");
+        debug!("{manifest}");
         let index = manifest.find("/daemon").unwrap();
         let root = format!("{}/{}", &manifest[..index], common::CONFIG_PATH);
         let f = std::fs::File::open(root).expect("Could not open file.");

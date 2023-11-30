@@ -2,6 +2,7 @@ pub mod status;
 use std::io;
 
 use common::server::{Key, RequestFactory, Server, SERVER_KEY};
+use logger::{debug, error, info};
 pub use status::Status;
 
 use crate::signal_handling::install_sighup_handler;
@@ -31,20 +32,20 @@ impl TaskMaster {
     }
 
     pub fn serve_routine(&mut self) -> io::Result<()> {
-        println!("#{} AWAITING", self.server.key);
+        info!("#{} AWAITING", self.server.key);
         self.server.epoll_wait()?;
         for ev in self.server.get_events() {
             let key: Key = ev.u64;
             if key == SERVER_KEY {
                 if self.server.accept().is_ok() {
-                    println!("#{} ACCEPTED", self.server.key);
+                    info!("#{} ACCEPTED", self.server.key);
                 }
                 continue;
             }
             if (ev.events & libc::EPOLLIN as u32) != 0 {
                 if let Ok(mut msg) = self.server.recv(key) {
                     self.factory.insert(key, &mut msg);
-                    println!("#{key} REQUEST READ");
+                    info!("#{key} REQUEST READ");
                     if let Some(request) = self.factory.parse(key) {
                         self.backend.clients.insert(key, request);
                         self.server.modify_interest(key, Server::write_event(key))?;
@@ -60,10 +61,10 @@ impl TaskMaster {
                 self.server.send(key, &msg)?;
                 // should close the request when Response object is finished
                 // we will know if the backend is done with it, now we don't
-                println!("#{key} RESPONSE SENT");
+                info!("#{key} RESPONSE SENT");
             } else {
                 let ev = ev.events;
-                println!("Unexpected event: {}", ev);
+                error!("Unexpected event: {}", ev);
             }
         }
         Ok(())
@@ -71,7 +72,7 @@ impl TaskMaster {
 
     pub fn reload(&mut self) -> io::Result<()> {
         if let Status::Reloading = self.status {
-            println!("Reloading!!!");
+            debug!("Reloading!!!");
             self.backend.update().expect("Failed to reload config");
             self.status = Status::Active;
         };

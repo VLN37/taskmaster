@@ -1,5 +1,7 @@
 use std::collections::{HashMap, LinkedList, VecDeque};
 
+use logger::debug;
+
 use super::request::Request;
 use super::Key;
 
@@ -14,7 +16,7 @@ impl RequestFactory {
     pub fn insert(&mut self, k: Key, buf: &mut str) {
         if let Some(requests) = self.clients.get_mut(&k) {
             let value = requests.front_mut().unwrap();
-            println!("val: {value}\nbuf: {buf}");
+            debug!("val: {value}\nbuf: {buf}");
             value.push_str(buf);
         } else {
             let mut vec = VecDeque::new();
@@ -34,9 +36,9 @@ impl RequestFactory {
 
     pub fn parse(&mut self, k: Key) -> Option<Request> {
         let vec = self.clients.get_mut(&k).unwrap();
-        println!("Factory:  current request - {vec:?}");
+        debug!("Factory:  current request - {vec:?}");
         if vec.front().unwrap().contains('\n') {
-            println!("Factory: request is complete");
+            debug!("Factory: request is complete");
             let request = vec.pop_front().unwrap();
             if vec.is_empty() {
                 self.clients.remove(&k);
