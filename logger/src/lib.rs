@@ -61,37 +61,60 @@ impl std::fmt::Display for LogLevel {
     }
 }
 
-impl Logger {
-    pub fn new(module: &str) -> Logger {
-        Logger {
-            module:    module.into(),
-            log_level: LogLevel::global_log_level().clone(),
-        }
-    }
+fn global_log_level() -> &'static LogLevel {
+    static LOG_LEVEL: OnceLock<LogLevel> = OnceLock::new();
+    let level = match env::var("LOG_LEVEL") {
+        Ok(var) => LOG_LEVEL.get_or_init(|| LogLevel::from(var.as_str())),
+        Err(_) => LOG_LEVEL.get_or_init(|| LogLevel::INFO),
+    };
+    level
+}
 
-    pub fn debug(&self, msg: &str) {
-        if self.log_level >= LogLevel::DEBUG {
-            println!("[{}][{:5}] {}: {}", current_time(), "DEBUG", self.module, msg);
-        }
+#[doc(hidden)]
+pub fn __log(log_level: LogLevel, file: String, msg: &String) {
+    if log_level >= *global_log_level() {
+        println!(
+            "[{}][{log_level:5}] {:>8}: {msg}",
+            current_time(),
+            &file[0..file.find('/').unwrap_or(file.len())]
+        );
     }
+}
 
-    pub fn info(&self, msg: &str) {
-        if self.log_level >= LogLevel::INFO {
-            println!("[{}][{:5}] {}: {}", current_time(), "INFO", self.module, msg);
-        }
-    }
+#[macro_export]
+macro_rules! debug {
+    ($($arg:tt)*) => {{
+        logger::__log(logger::LogLevel::DEBUG,
+        file!().to_string(),
+        &format_args!($($arg)*).to_string());
+    }};
+}
 
-    pub fn warn(&self, msg: &str) {
-        if self.log_level >= LogLevel::WARN {
-            println!("[{}][{:5}] {}: {}", current_time(), "WARN", self.module, msg);
-        }
-    }
+#[macro_export]
+macro_rules! info {
+    ($($arg:tt)*) => {{
+        logger::__log(logger::LogLevel::INFO,
+        file!().to_string(),
+        &format_args!($($arg)*).to_string());
+    }};
+}
 
-    pub fn error(&self, msg: &str) {
-        if self.log_level >= LogLevel::ERROR {
-            println!("[{}][{:5}] {}: {}", current_time(), "ERROR", self.module, msg);
-        }
-    }
+#[macro_export]
+macro_rules! warning {
+    ($($arg:tt)*) => {{
+        logger::__log(logger::LogLevel::WARN,
+        file!().to_string(),
+        &format_args!($($arg)*).to_string());
+    }};
+}
+
+#[macro_export]
+macro_rules! error {
+    ($($arg:tt)*) => {{
+        logger::__log(logger::LogLevel::ERROR,
+        file!().to_string(),
+        &format_args!($($arg)*).to_string());
+    }};
 }
 
 fn current_time() -> String {
