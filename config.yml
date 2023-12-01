@@ -5,7 +5,7 @@ programs:
         args:
           - "-c"
           - "echo oi"
-        processes: 3
+        processes: 1
         # run_at_startup: true,
         # retry_start_count: 3,
         restart: ALWAYS
@@ -19,5 +19,14 @@ programs:
     echo:
         command: "echo"
         args: ["the arguments"]
-    env:
-        command: "env"
+        processes: 3
+    weird_wierd:
+        command: "ialakkkkkkkazideiaprogram"
+        args: ["the arguments"]
+        processes: 2
+    empty_command:
+        command: ""
+        args: ["the arguments"]
+        processes: 1
+    # env:
+    #     command: "env"
