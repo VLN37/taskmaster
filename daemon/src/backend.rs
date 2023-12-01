@@ -11,11 +11,11 @@ use crate::TaskMasterConfig;
 #[derive(Default)]
 pub struct BackEnd {
     pub config:   TaskMasterConfig,
-    pub programs: HashMap<String, ActiveProgram>,
+    pub programs: HashMap<String, Program>,
     pub clients:  HashMap<Key, Request>,
 }
 
-pub struct ActiveProgram {
+pub struct Program {
     pub config_name: String,
     pub config:      ProgramConfig,
     pub command:     Command,
@@ -67,7 +67,7 @@ impl BackEnd {
         })
     }
 
-    fn start_process(program: &mut ActiveProgram) -> Result<Child, Error> {
+    fn start_process(program: &mut Program) -> Result<Child, Error> {
         if program.command.get_program() == "" {
             return Err(Error::new(io::ErrorKind::Other, "Empty command"));
         }
@@ -75,7 +75,7 @@ impl BackEnd {
         program.command.spawn()
     }
 
-    fn start_procesess(programs: &mut HashMap<String, ActiveProgram>) {
+    fn start_procesess(programs: &mut HashMap<String, Program>) {
         programs.iter_mut().for_each(|(_name, program)| {
             program.processes = (0..program.config.processes as usize)
                 .map(|index| {
@@ -89,7 +89,7 @@ impl BackEnd {
 
     fn create_programs(
         program_configs: &HashMap<String, ProgramConfig>,
-    ) -> HashMap<String, ActiveProgram> {
+    ) -> HashMap<String, Program> {
         program_configs
             .iter()
             .map(|(program_name, command_config)| {
@@ -111,7 +111,7 @@ impl BackEnd {
 
                 (
                     program_name.to_owned(),
-                    ActiveProgram {
+                    Program {
                         config_name: program_name.to_owned(),
                         config: command_config.clone(),
                         command,
@@ -145,7 +145,7 @@ impl BackEnd {
 }
 
 fn update_process_status(
-    program: &mut ActiveProgram,
+    program: &mut Program,
     index: usize,
     spawn_result: &Result<Child, Error>,
 ) {
