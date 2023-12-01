@@ -71,7 +71,7 @@ fn global_log_level() -> &'static LogLevel {
 }
 
 #[doc(hidden)]
-pub fn __log(log_level: LogLevel, file: String, msg: &String) {
+pub fn __log(log_level: LogLevel, file: &str, msg: &str) {
     if log_level >= *global_log_level() {
         println!(
             "[{}][{log_level:5}] {:>8}: {msg}",
@@ -86,8 +86,8 @@ macro_rules! debug {
     ($($arg:tt)*) => {{
         logger::__log(
             logger::LogLevel::DEBUG,
-            file!().to_string(),
-            &format_args!($($arg)*).to_string()
+            file!(),
+            &format!($($arg)*)
         );
     }};
 }
@@ -97,8 +97,8 @@ macro_rules! info {
     ($($arg:tt)*) => {{
         logger::__log(
             logger::LogLevel::INFO,
-            file!().to_string(),
-            &format_args!($($arg)*).to_string()
+            file!(),
+            &format!($($arg)*)
         );
     }};
 }
@@ -108,8 +108,8 @@ macro_rules! warning {
     ($($arg:tt)*) => {{
         logger::__log(
             logger::LogLevel::WARN,
-            file!().to_string(),
-            &format_args!($($arg)*).to_string()
+            file!(),
+            &format!($($arg)*)
         );
     }};
 }
@@ -119,8 +119,8 @@ macro_rules! error {
     ($($arg:tt)*) => {{
         logger::__log(
             logger::LogLevel::ERROR,
-            file!().to_string(),
-            &format_args!($($arg)*).to_string()
+            file!(),
+            &format!($($arg)*)
         );
     }};
 }
