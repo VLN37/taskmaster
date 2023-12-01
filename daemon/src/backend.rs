@@ -5,7 +5,7 @@ use std::process::{Child, Command};
 use common::server::{Key, Request};
 use logger::{debug, info};
 
-use crate::config::{ConfigError, Program};
+use crate::config::{ConfigError, ProgramConfig};
 use crate::TaskMasterConfig;
 
 #[derive(Default)]
@@ -17,7 +17,7 @@ pub struct BackEnd {
 
 pub struct ActiveProgram {
     pub config_name: String,
-    pub config:      Program,
+    pub config:      ProgramConfig,
     pub command:     Command,
     pub processes:   Vec<Result<Child, Error>>,
     pub status:      Vec<ProgramStatus>,
@@ -69,7 +69,7 @@ impl BackEnd {
 
     fn start_process(program: &mut ActiveProgram) -> Result<Child, Error> {
         if program.command.get_program() == "" {
-            return Result::Err(Error::new(io::ErrorKind::Other, "Empty command"));
+            return Err(Error::new(io::ErrorKind::Other, "Empty command"));
         }
 
         program.command.spawn()
@@ -88,7 +88,7 @@ impl BackEnd {
     }
 
     fn create_programs(
-        program_configs: &HashMap<String, Program>,
+        program_configs: &HashMap<String, ProgramConfig>,
     ) -> HashMap<String, ActiveProgram> {
         program_configs
             .iter()
@@ -155,7 +155,7 @@ fn update_process_status(
     };
 }
 
-fn print_programs(msg: &str, programs: &HashMap<String, Program>) {
+fn print_programs(msg: &str, programs: &HashMap<String, ProgramConfig>) {
     debug!("---- {msg}");
     let mut programs = programs.keys().collect::<Vec<_>>();
 
@@ -164,9 +164,9 @@ fn print_programs(msg: &str, programs: &HashMap<String, Program>) {
 }
 
 fn get_diff(
-    first: &HashMap<String, Program>,
-    second: &HashMap<String, Program>,
-) -> HashMap<String, Program> {
+    first: &HashMap<String, ProgramConfig>,
+    second: &HashMap<String, ProgramConfig>,
+) -> HashMap<String, ProgramConfig> {
     first
         .iter()
         .filter(|&(key, program)| {
@@ -176,7 +176,7 @@ fn get_diff(
         .collect()
 }
 
-fn has_major_changes(first: &Program, second: &Program) -> bool {
+fn has_major_changes(first: &ProgramConfig, second: &ProgramConfig) -> bool {
     first.command != second.command
         || first.args != second.args
         // || first.status != second.status

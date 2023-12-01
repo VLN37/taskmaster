@@ -5,11 +5,11 @@ use serde::{Deserialize, Serialize};
 
 pub mod exceptions;
 pub mod structs;
-pub use structs::{Program, RestartOption, Signal};
+pub use structs::{ProgramConfig, RestartOption, Signal};
 
 #[derive(Default, Debug, Serialize, Deserialize, PartialEq)]
 pub struct TaskMasterConfig {
-    pub programs: HashMap<String, Program>,
+    pub programs: HashMap<String, ProgramConfig>,
 }
 
 #[derive(Copy, Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
