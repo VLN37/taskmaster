@@ -47,15 +47,15 @@ impl BackEnd {
         print_programs("initial programs", &self.config.programs);
         self.programs = Self::create_programs(&self.config.programs);
 
-        self.start_procesess();
+        Self::start_procesess(&mut self.programs);
 
         self.programs.iter().for_each(|(_, program)| {
             program
                 .processes
                 .iter()
                 .enumerate()
-                .for_each(|(i, _process)| {
-                    let pid_or_error = match _process {
+                .for_each(|(i, process)| {
+                    let pid_or_error = match process {
                         Ok(child) => child.id().to_string(),
                         Err(err) => err.to_string(),
                     };
@@ -67,24 +67,21 @@ impl BackEnd {
         })
     }
 
-    fn start_procesess(&mut self) {
-        self.programs.iter_mut().for_each(|(_name, program)| {
-            program.processes = (0..program.config.processes)
-                .map(|index| {
-                    if program.command.get_program() == "" {
-                        program.status[index as usize] = ProgramStatus::FailedToStart;
-                        return Result::Err(Error::new(
-                            io::ErrorKind::Other,
-                            "Empty command",
-                        ));
-                    }
+    fn start_process(program: &mut ActiveProgram) -> Result<Child, Error> {
+        if program.command.get_program() == "" {
+            return Result::Err(Error::new(io::ErrorKind::Other, "Empty command"));
+        }
 
-                    let spawn_result = program.command.spawn();
-                    program.status[index as usize] = match spawn_result {
-                        Ok(_) => ProgramStatus::Active,
-                        Err(_) => ProgramStatus::FailedToStart,
-                    };
-                    spawn_result
+        program.command.spawn()
+    }
+
+    fn start_procesess(programs: &mut HashMap<String, ActiveProgram>) {
+        programs.iter_mut().for_each(|(_name, program)| {
+            program.processes = (0..program.config.processes as usize)
+                .map(|index| {
+                    let result = Self::start_process(program);
+                    update_process_status(program, index, &result);
+                    result
                 })
                 .collect();
         });
@@ -108,10 +105,6 @@ impl BackEnd {
                             .map(|(var, value)| (var.to_string(), value.to_string()))
                             .collect::<HashMap<String, String>>(),
                     );
-
-                // let status = (0..command_config.processes)
-                //     .map(|_| ProgramStatus::Starting)
-                //     .collect();
 
                 let status =
                     vec![ProgramStatus::Starting; command_config.processes as usize];
@@ -149,6 +142,17 @@ impl BackEnd {
 
         self.config = new_config;
     }
+}
+
+fn update_process_status(
+    program: &mut ActiveProgram,
+    index: usize,
+    spawn_result: &Result<Child, Error>,
+) {
+    program.status[index] = match *spawn_result {
+        Ok(_) => ProgramStatus::Active,
+        Err(_) => ProgramStatus::FailedToStart,
+    };
 }
 
 fn print_programs(msg: &str, programs: &HashMap<String, Program>) {
