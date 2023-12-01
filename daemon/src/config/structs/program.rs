@@ -27,8 +27,8 @@ impl Program {
 impl Default for Program {
     fn default() -> Program {
         Program {
-            command:               String::from("tail -f"),
-            args:                  vec![String::from("")],
+            command:               String::default(),
+            args:                  vec![],
             processes:             1,
             run_at_startup:        true,
             retry_start_count:     3,
@@ -38,7 +38,7 @@ impl Default for Program {
             success_codes:         [0].to_vec(),
             succesful_start_after: 5,
             workdir:               std::env::var("CWD").unwrap_or(String::from("/")),
-            environment_variables: vec![String::from("ANSWER=42")],
+            environment_variables: vec![],
             umask:                 420,
         }
     }
