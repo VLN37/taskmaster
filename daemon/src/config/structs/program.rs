@@ -4,7 +4,7 @@ use super::{RestartOption, Signal};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
-pub struct Program {
+pub struct ProgramConfig {
     pub command:               String,
     pub args:                  Vec<String>,
     pub processes:             u32,
@@ -20,13 +20,13 @@ pub struct Program {
     pub umask:                 u32,
 }
 
-impl Program {
-    pub fn new() -> Program { Program::default() }
+impl ProgramConfig {
+    pub fn new() -> ProgramConfig { ProgramConfig::default() }
 }
 
-impl Default for Program {
-    fn default() -> Program {
-        Program {
+impl Default for ProgramConfig {
+    fn default() -> ProgramConfig {
+        ProgramConfig {
             command:               String::default(),
             args:                  vec![],
             processes:             1,
@@ -46,7 +46,7 @@ impl Default for Program {
 
 // impl Copy for Program {}
 
-impl Clone for Program {
+impl Clone for ProgramConfig {
     fn clone(&self) -> Self {
         Self {
             command:               self.command.clone(),
