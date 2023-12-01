@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 use std::io::{self, Error};
-use std::process::{id, Child, Command};
+use std::process::{Child, Command};
 
 use common::server::{Key, Request};
-use common::CONFIG_PATH;
 use logger::{debug, info};
 
 use crate::config::{ConfigError, Program};
@@ -60,7 +59,7 @@ impl BackEnd {
                         Ok(child) => child.id().to_string(),
                         Err(err) => err.to_string(),
                     };
-                    println!(
+                    info!(
                         "{}[{}]: {:?} [{}]",
                         program.config_name, i, program.status[i], pid_or_error
                     );
