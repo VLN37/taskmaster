@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io;
 
 use common::server::{Key, RequestFactory, Server, SERVER_KEY};
+use common::CONFIG_PATH;
 use logger::{debug, error, info};
 pub use status::Status;
 
@@ -76,7 +77,9 @@ impl TaskMaster {
     pub fn reload(&mut self) -> io::Result<()> {
         if let Status::Reloading = self.status {
             debug!("Reloading!!!");
-            self.backend.update().expect("Failed to reload config");
+            self.backend
+                .update(File::open(CONFIG_PATH)?.into())
+                .expect("Failed to reload config");
             self.status = Status::Active;
         };
         Ok(())
