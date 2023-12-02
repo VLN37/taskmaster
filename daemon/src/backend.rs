@@ -59,6 +59,11 @@ impl BackEnd {
         print_processes(&self.programs);
     }
 
+    pub fn dump_processes_status(&self) {
+        info!("----------------------------------");
+        print_processes(&self.programs);
+    }
+
     fn start_process(program: &mut Program) -> Process {
         if program.command.get_program() == "" {
             return Process {
@@ -72,9 +77,18 @@ impl BackEnd {
         }
     }
 
+    pub fn check_processes_status(&mut self) {
+        self.programs.iter_mut().for_each(|(_, program)| {
+            program
+                .processes
+                .iter_mut()
+                .for_each(|p| p.update_status(&program.config))
+        })
+    }
+
     fn start_procesess(programs: &mut HashMap<String, Program>) {
         programs.iter_mut().for_each(|(_name, program)| {
-            program.processes = (0..program.config.processes as usize)
+            program.processes = (0..program.config.processes)
                 .map(|_| Self::start_process(program))
                 .collect();
 
