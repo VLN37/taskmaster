@@ -36,8 +36,10 @@ impl TaskMaster {
     }
 
     pub fn serve_routine(&mut self) -> io::Result<()> {
-        info!("#{} AWAITING", self.server.key);
+        // info!("#{} AWAITING", self.server.key);
         self.server.epoll_wait()?;
+        self.backend.check_processes_status();
+        self.backend.dump_processes_status();
         for ev in self.server.get_events() {
             let key: Key = ev.u64;
             if key == SERVER_KEY {
