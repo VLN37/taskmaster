@@ -4,7 +4,7 @@ programs:
         command: "bash"
         args:
           - "-c"
-          - "echo oi"
+          - "echo oi; exit 1"
         processes: 1
         # run_at_startup: true,
         # retry_start_count: 3,
@@ -16,6 +16,9 @@ programs:
         # workdir:               /home/user,
         # environment_variables: "VARIABLE=value;OTHER=value",
         # umask:                 420,
+    sleep:
+        command: "bash"
+        args: ['-c', 'sleep 3; exit 42']
     echo:
         command: "echo"
         args: ["the arguments"]
