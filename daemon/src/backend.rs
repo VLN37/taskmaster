@@ -3,8 +3,10 @@ use std::io::{self, Error};
 use std::process::{Child, Command};
 
 use common::server::{Key, Request};
-use logger::{debug, info};
+use logger::info;
+mod print_functions;
 
+use self::print_functions::{print_processes, print_programs};
 use crate::config::{ConfigError, ProgramConfig};
 use crate::TaskMasterConfig;
 
@@ -49,22 +51,7 @@ impl BackEnd {
 
         Self::start_procesess(&mut self.programs);
 
-        self.programs.iter().for_each(|(_, program)| {
-            program
-                .processes
-                .iter()
-                .enumerate()
-                .for_each(|(i, process)| {
-                    let pid_or_error = match process {
-                        Ok(child) => child.id().to_string(),
-                        Err(err) => err.to_string(),
-                    };
-                    info!(
-                        "{}[{}]: {:?} [{}]",
-                        program.config_name, i, program.status[i], pid_or_error
-                    );
-                })
-        })
+        print_processes(&self.programs);
     }
 
     fn start_process(program: &mut Program) -> Result<Child, Error> {
@@ -153,14 +140,6 @@ fn update_process_status(
         Ok(_) => ProgramStatus::Active,
         Err(_) => ProgramStatus::FailedToStart,
     };
-}
-
-fn print_programs(msg: &str, programs: &HashMap<String, ProgramConfig>) {
-    debug!("---- {msg}");
-    let mut programs = programs.keys().collect::<Vec<_>>();
-
-    programs.sort();
-    programs.iter().for_each(|p| debug!("  {p}"));
 }
 
 fn get_diff(
