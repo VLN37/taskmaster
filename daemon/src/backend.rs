@@ -4,8 +4,8 @@ use std::process::{Child, Command};
 
 use common::server::{Key, Request};
 use logger::info;
-mod print_functions;
 
+mod print_functions;
 use self::print_functions::{print_processes, print_programs};
 use crate::config::{ConfigError, ProgramConfig};
 use crate::TaskMasterConfig;
@@ -21,18 +21,23 @@ pub struct Program {
     pub config_name: String,
     pub config:      ProgramConfig,
     pub command:     Command,
-    pub processes:   Vec<Result<Child, Error>>,
-    pub status:      Vec<ProgramStatus>,
+    pub processes:   Vec<Process>,
+}
+
+pub struct Process {
+    child:  Result<Child, Error>,
+    status: ProcessStatus,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub enum ProgramStatus {
+pub enum ProcessStatus {
     Starting,
     FailedToStart,
     Active,
     GracefulExit,
     Killed,
     FailedExit,
+    Unknown,
 }
 
 impl BackEnd {
@@ -54,23 +59,29 @@ impl BackEnd {
         print_processes(&self.programs);
     }
 
-    fn start_process(program: &mut Program) -> Result<Child, Error> {
+    fn start_process(program: &mut Program) -> Process {
         if program.command.get_program() == "" {
-            return Err(Error::new(io::ErrorKind::Other, "Empty command"));
+            return Process {
+                child:  Err(Error::new(io::ErrorKind::Other, "Empty command")),
+                status: ProcessStatus::FailedToStart,
+            };
         }
-
-        program.command.spawn()
+        Process {
+            child:  program.command.spawn(),
+            status: ProcessStatus::Starting,
+        }
     }
 
     fn start_procesess(programs: &mut HashMap<String, Program>) {
         programs.iter_mut().for_each(|(_name, program)| {
             program.processes = (0..program.config.processes as usize)
-                .map(|index| {
-                    let result = Self::start_process(program);
-                    update_process_status(program, index, &result);
-                    result
-                })
+                .map(|_| Self::start_process(program))
                 .collect();
+
+            program
+                .processes
+                .iter_mut()
+                .for_each(|p| p.update_status(&program.config))
         });
     }
 
@@ -93,9 +104,6 @@ impl BackEnd {
                             .collect::<HashMap<String, String>>(),
                     );
 
-                let status =
-                    vec![ProgramStatus::Starting; command_config.processes as usize];
-
                 (
                     program_name.to_owned(),
                     Program {
@@ -103,7 +111,6 @@ impl BackEnd {
                         config: command_config.clone(),
                         command,
                         processes: vec![],
-                        status,
                     },
                 )
             })
@@ -131,15 +138,28 @@ impl BackEnd {
     }
 }
 
-fn update_process_status(
-    program: &mut Program,
-    index: usize,
-    spawn_result: &Result<Child, Error>,
-) {
-    program.status[index] = match *spawn_result {
-        Ok(_) => ProgramStatus::Active,
-        Err(_) => ProgramStatus::FailedToStart,
-    };
+impl Process {
+    pub fn update_status(&mut self, config: &ProgramConfig) {
+        self.status = match &mut self.child {
+            Ok(ref mut child) => match child.try_wait() {
+                // should check status, could still have crashed or something
+                Ok(Some(status)) => {
+                    if let Some(code) = status.code() {
+                        if config.success_codes.contains(&(code as u32)) {
+                            ProcessStatus::GracefulExit
+                        } else {
+                            ProcessStatus::FailedExit
+                        }
+                    } else {
+                        ProcessStatus::Unknown
+                    }
+                }
+                Ok(None) => ProcessStatus::Active,
+                Err(_) => ProcessStatus::FailedExit,
+            },
+            Err(_) => ProcessStatus::FailedToStart,
+        };
+    }
 }
 
 fn get_diff(

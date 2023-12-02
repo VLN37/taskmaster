@@ -1,10 +1,8 @@
 use std::collections::HashMap;
-use std::io::Error;
-use std::process::Child;
 
 use logger::{debug, info};
 
-use super::Program;
+use super::{Process, Program};
 use crate::config::ProgramConfig;
 
 pub fn print_programs(msg: &str, programs: &HashMap<String, ProgramConfig>) {
@@ -15,14 +13,14 @@ pub fn print_programs(msg: &str, programs: &HashMap<String, ProgramConfig>) {
     programs.iter().for_each(|p| debug!("  {p}"));
 }
 
-pub fn print_process(program: &Program, process: &Result<Child, Error>, i: usize) {
-    let pid_or_error = match process {
+pub fn print_process(program: &Program, process: &Process, i: usize) {
+    let pid_or_error = match &process.child {
         Ok(child) => child.id().to_string(),
         Err(err) => err.to_string(),
     };
     info!(
         "{}[{}]: {:?} [{}]",
-        program.config_name, i, program.status[i], pid_or_error
+        program.config_name, i, process.status, pid_or_error
     );
 }
 
