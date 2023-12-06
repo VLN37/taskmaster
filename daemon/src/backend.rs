@@ -1,12 +1,14 @@
 use std::collections::HashMap;
-use std::io::{self, Error};
-use std::process::{Child, Command};
 
 use common::server::{Key, Request};
 use logger::info;
 
 mod print_functions;
+mod process;
+mod program;
 use self::print_functions::{print_processes, print_programs};
+use self::process::Process;
+use self::program::Program;
 use crate::config::{ConfigError, ProgramConfig};
 use crate::TaskMasterConfig;
 
@@ -15,29 +17,6 @@ pub struct BackEnd {
     pub config:   TaskMasterConfig,
     pub programs: HashMap<String, Program>,
     pub clients:  HashMap<Key, Request>,
-}
-
-pub struct Program {
-    pub config_name: String,
-    pub config:      ProgramConfig,
-    pub command:     Command,
-    pub processes:   Vec<Process>,
-}
-
-pub struct Process {
-    child:  Result<Child, Error>,
-    status: ProcessStatus,
-}
-
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum ProcessStatus {
-    Starting,
-    FailedToStart,
-    Active,
-    GracefulExit,
-    Killed,
-    FailedExit,
-    Unknown,
 }
 
 impl BackEnd {
@@ -59,43 +38,19 @@ impl BackEnd {
         print_processes(&self.programs);
     }
 
-    pub fn dump_processes_status(&self) {
-        info!("----------------------------------");
-        print_processes(&self.programs);
-    }
-
-    fn start_process(program: &mut Program) -> Process {
-        if program.command.get_program() == "" {
-            return Process {
-                child:  Err(Error::new(io::ErrorKind::Other, "Empty command")),
-                status: ProcessStatus::FailedToStart,
-            };
-        }
-        Process {
-            child:  program.command.spawn(),
-            status: ProcessStatus::Starting,
-        }
-    }
-
-    pub fn check_processes_status(&mut self) {
-        self.programs.iter_mut().for_each(|(_, program)| {
-            program
-                .processes
-                .iter_mut()
-                .for_each(|p| p.update_status(&program.config))
-        })
+    pub fn update_processes_status(&mut self) {
+        self.programs
+            .iter_mut()
+            .for_each(|(_, program)| program.update_process_status())
     }
 
     fn start_procesess(programs: &mut HashMap<String, Program>) {
-        programs.iter_mut().for_each(|(_name, program)| {
+        programs.iter_mut().for_each(|(_, program)| {
             program.processes = (0..program.config.processes)
-                .map(|_| Self::start_process(program))
+                .map(|_| Process::start(program))
                 .collect();
 
-            program
-                .processes
-                .iter_mut()
-                .for_each(|p| p.update_status(&program.config))
+            program.update_process_status();
         });
     }
 
@@ -104,29 +59,8 @@ impl BackEnd {
     ) -> HashMap<String, Program> {
         program_configs
             .iter()
-            .map(|(program_name, command_config)| {
-                let mut command = Command::new(&command_config.command);
-                command
-                    .current_dir(&command_config.workdir)
-                    .args(&command_config.args)
-                    .envs(
-                        command_config
-                            .environment_variables
-                            .iter()
-                            .filter_map(|var| var.split_once('='))
-                            .map(|(var, value)| (var.to_string(), value.to_string()))
-                            .collect::<HashMap<String, String>>(),
-                    );
-
-                (
-                    program_name.to_owned(),
-                    Program {
-                        config_name: program_name.to_owned(),
-                        config: command_config.clone(),
-                        command,
-                        processes: vec![],
-                    },
-                )
+            .map(|config_pair| {
+                (config_pair.0.to_owned(), Program::build_from(config_pair))
             })
             .collect()
     }
@@ -150,29 +84,10 @@ impl BackEnd {
 
         self.config = new_config;
     }
-}
 
-impl Process {
-    pub fn update_status(&mut self, config: &ProgramConfig) {
-        self.status = match &mut self.child {
-            Ok(ref mut child) => match child.try_wait() {
-                // should check status, could still have crashed or something
-                Ok(Some(status)) => {
-                    if let Some(code) = status.code() {
-                        if config.success_codes.contains(&(code as u32)) {
-                            ProcessStatus::GracefulExit
-                        } else {
-                            ProcessStatus::FailedExit
-                        }
-                    } else {
-                        ProcessStatus::Unknown
-                    }
-                }
-                Ok(None) => ProcessStatus::Active,
-                Err(_) => ProcessStatus::FailedExit,
-            },
-            Err(_) => ProcessStatus::FailedToStart,
-        };
+    pub fn dump_processes_status(&self) {
+        info!("----------------------------------");
+        print_processes(&self.programs);
     }
 }
 
