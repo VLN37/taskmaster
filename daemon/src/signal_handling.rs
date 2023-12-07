@@ -6,12 +6,17 @@ use logger::debug;
 
 use super::config::Signal;
 
-// static mut SIGHUP_CLOSURE: Option<Box<dyn FnMut(c_int)>> = None;
 static mut SIGHUP_CLOSURE: Option<Box<dyn FnMut()>> = None;
+static mut SIGCHLD_CLOSURE: Option<Box<dyn FnMut()>> = None;
 
-extern "C" fn sighup_handler(_sig: c_int) {
+extern "C" fn signal_handler(sig: c_int) {
     unsafe {
-        if let Some(ref mut handler) = SIGHUP_CLOSURE {
+        let mut closure = match Signal::from(sig) {
+            Signal::SIGHUP => SIGHUP_CLOSURE.as_mut(),
+            Signal::SIGCHLD => SIGCHLD_CLOSURE.as_mut(),
+            _ => panic!("unknown signal received"),
+        };
+        if let Some(ref mut handler) = closure {
             debug!("calling closure");
             handler();
             debug!("closure called");
@@ -19,15 +24,27 @@ extern "C" fn sighup_handler(_sig: c_int) {
     }
 }
 
-pub fn install_sighup_handler(handler: impl FnMut() + 'static) {
+pub fn install_signal_handler(signal: Signal, handler: impl FnMut() + 'static) {
     let mut action: sigaction = unsafe { MaybeUninit::zeroed().assume_init() };
-
-    unsafe { SIGHUP_CLOSURE = Some(Box::new(handler)) };
-    action.sa_sigaction = sighup_handler as usize;
+    unsafe {
+        match signal {
+            Signal::SIGHUP => SIGHUP_CLOSURE = Some(Box::new(handler)),
+            Signal::SIGCHLD => SIGCHLD_CLOSURE = Some(Box::new(handler)),
+            _ => panic!("unknown signal received"),
+        };
+    }
+    action.sa_sigaction = signal_handler as usize;
     action.sa_flags = SA_SIGINFO;
     unsafe { sigemptyset(&mut action.sa_mask) };
+    unsafe { sigaction(signal as i32, &action, null_mut::<sigaction>()) };
+}
 
-    unsafe { sigaction(Signal::SIGHUP as i32, &action, null_mut::<sigaction>()) };
+pub fn install_sighup_handler(handler: impl FnMut() + 'static) {
+    install_signal_handler(Signal::SIGHUP, handler);
+}
+
+pub fn install_sigchld_handler(handler: impl FnMut() + 'static) {
+    install_signal_handler(Signal::SIGCHLD, handler);
 }
 
 #[cfg(test)]
@@ -35,8 +52,16 @@ mod test {
     use super::*;
     use crate::taskmaster::{Status, TaskMaster};
 
+    fn initialize() {
+        unsafe {
+            SIGHUP_CLOSURE = None;
+            SIGCHLD_CLOSURE = None;
+        };
+    }
+
     #[test]
-    fn handler_test() {
+    fn sighup_handler_test() {
+        initialize();
         let mut taskmaster = TaskMaster::new();
         let ptr: *mut Status = &mut taskmaster.status;
         unsafe {
@@ -45,14 +70,54 @@ mod test {
             });
         }
         assert_eq!(taskmaster.status, Status::Starting);
-        sighup_handler(libc::SIGHUP);
+        signal_handler(libc::SIGHUP);
         assert_eq!(taskmaster.status, Status::Reloading);
         taskmaster.status = Status::Active;
-        sighup_handler(libc::SIGHUP);
+        signal_handler(libc::SIGHUP);
         assert_eq!(taskmaster.status, Status::Reloading);
         taskmaster.status = Status::Active;
-        sighup_handler(libc::SIGHUP);
+        signal_handler(libc::SIGHUP);
         assert_eq!(taskmaster.status, Status::Reloading);
         taskmaster.status = Status::Active;
+    }
+
+    #[test]
+    fn sigchld_handler_test() {
+        initialize();
+        let mut alive = true;
+        let ptr: *mut bool = &mut alive;
+        unsafe {
+            install_sigchld_handler(move || *ptr = !*ptr);
+        }
+        assert!(alive);
+        signal_handler(libc::SIGCHLD);
+        assert!(!alive);
+        signal_handler(libc::SIGCHLD);
+        assert!(alive);
+    }
+
+    #[test]
+    fn unmangled_executions_test() {
+        initialize();
+        let mut chld_business = String::from("chld_business");
+        let mut hup_business = String::from("hup_business");
+        let chld_ptr: *mut String = &mut chld_business;
+        let hup_ptr: *mut String = &mut hup_business;
+        unsafe {
+            install_signal_handler(Signal::SIGHUP, move || {
+                *hup_ptr = "hup received".to_string()
+            });
+            install_signal_handler(Signal::SIGCHLD, move || {
+                *chld_ptr = "child received".to_string()
+            });
+        }
+        assert_eq!(chld_business, "chld_business");
+        assert_eq!(hup_business, "hup_business");
+        signal_handler(libc::SIGHUP);
+        assert_eq!(hup_business, "hup received");
+        assert_eq!(chld_business, "chld_business");
+        signal_handler(libc::SIGCHLD);
+        assert_eq!(hup_business, "hup received");
+        assert_eq!(chld_business, "child received");
     }
 }
