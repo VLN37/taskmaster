@@ -20,6 +20,16 @@ pub struct Process {
     pub status: ProcessStatus,
 }
 
+impl std::fmt::Display for Process {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let pid_or_error = match &self.child {
+            Ok(child) => child.id().to_string(),
+            Err(err) => err.to_string(),
+        };
+        write!(f, "{:?} {}", self.status, pid_or_error)
+    }
+}
+
 impl Process {
     pub fn start(program: &mut Program) -> Process {
         if program.command.get_program() == "" {

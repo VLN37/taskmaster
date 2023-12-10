@@ -86,8 +86,7 @@ impl BackEnd {
     }
 
     pub fn dump_processes_status(&self) {
-        info!("----------------------------------");
-        print_processes(&self.programs);
+        info!("{}", print_processes(&self.programs));
     }
 }
 

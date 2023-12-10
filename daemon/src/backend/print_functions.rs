@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use logger::{debug, info};
+use logger::debug;
 
-use super::{Process, Program};
+use super::Program;
 use crate::config::ProgramConfig;
 
 pub fn print_programs(msg: &str, programs: &HashMap<String, ProgramConfig>) {
@@ -13,25 +13,13 @@ pub fn print_programs(msg: &str, programs: &HashMap<String, ProgramConfig>) {
     programs.iter().for_each(|p| debug!("  {p}"));
 }
 
-pub fn print_process(program: &Program, process: &Process, i: usize) {
-    let pid_or_error = match &process.child {
-        Ok(child) => child.id().to_string(),
-        Err(err) => err.to_string(),
-    };
-    info!(
-        "{}[{}]: {:?} [{}]",
-        program.config_name, i, process.status, pid_or_error
-    );
-}
-
-pub fn print_processes(programs: &HashMap<String, Program>) {
-    programs.iter().for_each(|(_, program)| {
-        program
-            .processes
-            .iter()
-            .enumerate()
-            .for_each(|(i, process)| {
-                print_process(program, process, i);
-            })
-    })
+pub fn print_processes(programs: &HashMap<String, Program>) -> String {
+    let mut dump = String::from("Process dump\n");
+    for (_, program) in programs.iter() {
+        for (i, process) in program.processes.iter().enumerate() {
+            dump.push_str(&format!("{:15}[{}]: {}\n", program.config_name, i, process));
+        }
+    }
+    dump.pop();
+    dump
 }
