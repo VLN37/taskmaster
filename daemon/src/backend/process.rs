@@ -22,8 +22,9 @@ impl std::fmt::Display for ProcessStatus {
 }
 
 pub struct Process {
-    pub child:  Result<Child, Error>,
-    pub status: ProcessStatus,
+    pub child:     Result<Child, Error>,
+    pub exit_code: u32,
+    pub status:    ProcessStatus,
 }
 
 impl std::fmt::Display for Process {
@@ -40,13 +41,15 @@ impl Process {
     pub fn start(program: &mut Program) -> Process {
         if program.command.get_program() == "" {
             return Process {
-                child:  Err(Error::new(io::ErrorKind::Other, "Empty command")),
-                status: ProcessStatus::FailedToStart,
+                child:     Err(Error::new(io::ErrorKind::Other, "Empty command")),
+                exit_code: 0,
+                status:    ProcessStatus::FailedToStart,
             };
         }
         Process {
-            child:  program.command.spawn(),
-            status: ProcessStatus::Starting,
+            child:     program.command.spawn(),
+            exit_code: 0,
+            status:    ProcessStatus::Starting,
         }
     }
 
@@ -56,6 +59,7 @@ impl Process {
                 // should check status, could still have crashed or something
                 Ok(Some(status)) => {
                     if let Some(code) = status.code() {
+                        self.exit_code = code as u32;
                         if config.success_codes.contains(&(code as u32)) {
                             ProcessStatus::GracefulExit
                         } else {
