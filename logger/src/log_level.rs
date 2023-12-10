@@ -20,13 +20,13 @@ impl From<&str> for LogLevel {
 }
 
 impl std::fmt::Display for LogLevel {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let val = match self {
             LogLevel::ERROR => "ERROR",
             LogLevel::WARN => "WARN",
             LogLevel::INFO => "INFO",
             LogLevel::DEBUG => "DEBUG",
         };
-        formatter.pad(val)
+        f.pad(val)
     }
 }

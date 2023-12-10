@@ -15,6 +15,21 @@ pub enum ProcessStatus {
     Unknown,
 }
 
+impl std::fmt::Display for ProcessStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let val = match self {
+            ProcessStatus::Starting => "Starting",
+            ProcessStatus::FailedToStart => "FailedToStart",
+            ProcessStatus::Active => "Active",
+            ProcessStatus::GracefulExit => "GracefulExit",
+            ProcessStatus::Killed => "Killed",
+            ProcessStatus::FailedExit => "FailedExit",
+            ProcessStatus::Unknown => "Unknown",
+        };
+        f.pad(val)
+    }
+}
+
 pub struct Process {
     pub child:  Result<Child, Error>,
     pub status: ProcessStatus,
@@ -26,7 +41,7 @@ impl std::fmt::Display for Process {
             Ok(child) => child.id().to_string(),
             Err(err) => err.to_string(),
         };
-        write!(f, "{:?} {}", self.status, pid_or_error)
+        write!(f, "{:15} {}", self.status, pid_or_error)
     }
 }
 
