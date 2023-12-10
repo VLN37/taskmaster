@@ -115,8 +115,30 @@ impl BackEnd {
         self.config = new_config;
     }
 
+    fn find_child_by_pid(&self, pid: u32) -> Option<&Process> {
+        self.programs.iter().find_map(|(_, program)| {
+            program
+                .processes
+                .iter()
+                .find(|p| p.child.as_ref().is_ok_and(|child| child.id() == pid))
+        })
+    }
+
     pub fn dump_processes_status(&self) {
         debug!("{}", print_processes(&self.programs));
+    }
+
+    fn get_program_by_pid(&self, pid: u32) -> &Program {
+        self.programs
+            .iter()
+            .find(|(_, program)| {
+                program
+                    .processes
+                    .iter()
+                    .any(|p| p.child.as_ref().is_ok_and(|child| child.id() == pid))
+            })
+            .expect("Program not found")
+            .1
     }
 }
 
