@@ -6,7 +6,7 @@ use common::server::{Key, RequestFactory, Server, SERVER_KEY};
 use logger::{debug, error, info};
 pub use status::Status;
 
-use crate::signal_handling::install_sighup_handler;
+use crate::signal_handling::{install_sigchld_handler, install_sighup_handler};
 use crate::{defs, BackEnd};
 
 #[derive(Default)]
@@ -34,8 +34,14 @@ impl TaskMaster {
         self.backend.start();
 
         let ptr: *mut Status = &mut self.status;
-        install_sighup_handler(move || unsafe {
+        install_sighup_handler(move |_sig, _info| unsafe {
             *ptr = Status::Reloading;
+        });
+
+        let backend_ptr: *mut BackEnd = &mut self.backend;
+        install_sigchld_handler(move |_sig, info| unsafe {
+            let pid = (*info).si_pid();
+            (*backend_ptr).handle_sigchld(pid as u32);
         });
         self.status = Status::Active;
         Ok(())
@@ -57,7 +63,7 @@ impl TaskMaster {
         // info!("#{} AWAITING", self.server.key);
         self.server.epoll_wait()?;
         self.backend.update_processes_status();
-        self.backend.dump_processes_status();
+        // self.backend.dump_processes_status();
         for ev in self.server.get_events() {
             let key: Key = ev.u64;
             if key == SERVER_KEY {
