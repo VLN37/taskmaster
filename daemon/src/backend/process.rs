@@ -17,16 +17,7 @@ pub enum ProcessStatus {
 
 impl std::fmt::Display for ProcessStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let val = match self {
-            ProcessStatus::Starting => "Starting",
-            ProcessStatus::FailedToStart => "FailedToStart",
-            ProcessStatus::Active => "Active",
-            ProcessStatus::GracefulExit => "GracefulExit",
-            ProcessStatus::Killed => "Killed",
-            ProcessStatus::FailedExit => "FailedExit",
-            ProcessStatus::Unknown => "Unknown",
-        };
-        f.pad(val)
+        f.pad(&format!("{:?}", self))
     }
 }
 
