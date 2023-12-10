@@ -2,18 +2,13 @@ use std::mem::MaybeUninit;
 use std::ptr::null_mut;
 
 use libc::{c_int, sigaction, sigemptyset, SA_SIGINFO};
-use logger::debug;
 
 use super::config::Signal;
 
-static mut SIGHUP_CLOSURE: Option<Box<dyn FnMut(c_int, *mut libc::siginfo_t)>> = None;
-static mut SIGCHLD_CLOSURE: Option<Box<dyn FnMut(c_int, *mut libc::siginfo_t)>> = None;
+static mut SIGHUP_CLOSURE: Option<Box<dyn FnMut()>> = None;
+static mut SIGCHLD_CLOSURE: Option<Box<dyn FnMut()>> = None;
 
-extern "C" fn signal_handler(
-    sig: c_int,
-    siginfo: *mut libc::siginfo_t,
-    _: *mut libc::c_void,
-) {
+extern "C" fn signal_handler(sig: c_int) {
     unsafe {
         let mut closure = match Signal::from(sig) {
             Signal::SIGHUP => SIGHUP_CLOSURE.as_mut(),
@@ -21,15 +16,12 @@ extern "C" fn signal_handler(
             _ => panic!("unknown signal received"),
         };
         if let Some(ref mut handler) = closure {
-            handler(sig, siginfo);
+            handler();
         }
     }
 }
 
-pub fn install_signal_handler(
-    signal: Signal,
-    handler: impl FnMut(i32, *mut libc::siginfo_t) + 'static,
-) {
+pub fn install_signal_handler(signal: Signal, handler: impl FnMut() + 'static) {
     let mut action: sigaction = unsafe { MaybeUninit::zeroed().assume_init() };
     unsafe {
         match signal {
@@ -47,15 +39,11 @@ pub fn install_signal_handler(
     unsafe { sigaction(signal as i32, &action, null_mut::<sigaction>()) };
 }
 
-pub fn install_sighup_handler(
-    handler: impl FnMut(i32, *mut libc::siginfo_t) + 'static,
-) {
+pub fn install_sighup_handler(handler: impl FnMut() + 'static) {
     install_signal_handler(Signal::SIGHUP, handler);
 }
 
-pub fn install_sigchld_handler(
-    handler: impl FnMut(i32, *mut libc::siginfo_t) + 'static,
-) {
+pub fn install_sigchld_handler(handler: impl FnMut() + 'static) {
     install_signal_handler(Signal::SIGCHLD, handler);
 }
 
@@ -77,20 +65,18 @@ mod test {
         let mut taskmaster = TaskMaster::new();
         let ptr: *mut Status = &mut taskmaster.status;
         unsafe {
-            install_sighup_handler(move |_sig, _info| {
+            install_sighup_handler(move || {
                 *ptr = Status::Reloading;
             });
 
-            let mut sig = MaybeUninit::zeroed().assume_init();
-
             assert_eq!(taskmaster.status, Status::Starting);
-            signal_handler(libc::SIGHUP, &mut sig, null_mut());
+            signal_handler(libc::SIGHUP);
             assert_eq!(taskmaster.status, Status::Reloading);
             taskmaster.status = Status::Active;
-            signal_handler(libc::SIGHUP, &mut sig, null_mut());
+            signal_handler(libc::SIGHUP);
             assert_eq!(taskmaster.status, Status::Reloading);
             taskmaster.status = Status::Active;
-            signal_handler(libc::SIGHUP, &mut sig, null_mut());
+            signal_handler(libc::SIGHUP);
             assert_eq!(taskmaster.status, Status::Reloading);
             taskmaster.status = Status::Active;
         }
@@ -102,13 +88,12 @@ mod test {
         let mut alive = true;
         let ptr: *mut bool = &mut alive;
         unsafe {
-            install_sigchld_handler(move |_sig, _info| *ptr = !*ptr);
+            install_sigchld_handler(move || *ptr = !*ptr);
 
-            let mut sig = MaybeUninit::zeroed().assume_init();
             assert!(alive);
-            signal_handler(libc::SIGCHLD, &mut sig, null_mut());
+            signal_handler(libc::SIGCHLD);
             assert!(!alive);
-            signal_handler(libc::SIGCHLD, &mut sig, null_mut());
+            signal_handler(libc::SIGCHLD);
             assert!(alive);
         }
     }
@@ -121,22 +106,19 @@ mod test {
         let chld_ptr: *mut String = &mut chld_business;
         let hup_ptr: *mut String = &mut hup_business;
         unsafe {
-            install_signal_handler(Signal::SIGHUP, move |_sig, _info| {
+            install_signal_handler(Signal::SIGHUP, move || {
                 *hup_ptr = "hup received".to_string();
-                assert_eq!(_sig, Signal::SIGHUP as i32)
             });
-            install_signal_handler(Signal::SIGCHLD, move |_sig, _info| {
+            install_signal_handler(Signal::SIGCHLD, move || {
                 *chld_ptr = "child received".to_string();
-                assert_eq!(_sig, Signal::SIGCHLD as i32)
             });
 
-            let mut sig = MaybeUninit::zeroed().assume_init();
             assert_eq!(chld_business, "chld_business");
             assert_eq!(hup_business, "hup_business");
-            signal_handler(libc::SIGHUP, &mut sig, null_mut());
+            signal_handler(libc::SIGHUP);
             assert_eq!(hup_business, "hup received");
             assert_eq!(chld_business, "chld_business");
-            signal_handler(libc::SIGCHLD, &mut sig, null_mut());
+            signal_handler(libc::SIGCHLD);
             assert_eq!(hup_business, "hup received");
             assert_eq!(chld_business, "child received");
         }
