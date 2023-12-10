@@ -34,14 +34,13 @@ impl TaskMaster {
         self.backend.start();
 
         let ptr: *mut Status = &mut self.status;
-        install_sighup_handler(move |_sig, _info| unsafe {
+        install_sighup_handler(move || unsafe {
             *ptr = Status::Reloading;
         });
 
         let backend_ptr: *mut BackEnd = &mut self.backend;
-        install_sigchld_handler(move |_sig, info| unsafe {
-            let pid = (*info).si_pid();
-            (*backend_ptr).handle_sigchld(pid as u32);
+        install_sigchld_handler(move || unsafe {
+            (*backend_ptr).handle_dead_processes();
         });
         self.status = Status::Active;
         Ok(())

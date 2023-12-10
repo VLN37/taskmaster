@@ -44,19 +44,12 @@ impl BackEnd {
             .for_each(|(_, program)| program.update_process_status())
     }
 
-    pub fn handle_sigchld(&mut self, pid: u32) {
-        let program = self.get_program_by_pid(pid);
-        if let Some(process) = self.find_child_by_pid(pid) {
-            let index = program
-                .processes
-                .iter()
-                .position(|p| p.child.as_ref().is_ok_and(|child| child.id() == pid))
-                .expect("Process not found");
-            info!(
-                "Process {}[{}] with pid {} sent a sigchld",
-                program.config_name, index, pid
-            );
-        }
+    pub fn handle_dead_processes(&mut self) {
+        self.programs.iter_mut().for_each(|(_, program)| {
+            program.update_process_status();
+        });
+
+        self.dump_processes_status();
     }
 
     fn start_procesess(programs: &mut HashMap<String, Program>) {
@@ -100,30 +93,8 @@ impl BackEnd {
         self.config = new_config;
     }
 
-    fn find_child_by_pid(&self, pid: u32) -> Option<&Process> {
-        self.programs.iter().find_map(|(_, program)| {
-            program
-                .processes
-                .iter()
-                .find(|p| p.child.as_ref().is_ok_and(|child| child.id() == pid))
-        })
-    }
-
     pub fn dump_processes_status(&self) {
         debug!("{}", print_processes(&self.programs));
-    }
-
-    fn get_program_by_pid(&self, pid: u32) -> &Program {
-        self.programs
-            .iter()
-            .find(|(_, program)| {
-                program
-                    .processes
-                    .iter()
-                    .any(|p| p.child.as_ref().is_ok_and(|child| child.id() == pid))
-            })
-            .expect("Program not found")
-            .1
     }
 }
 
