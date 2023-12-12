@@ -1,4 +1,5 @@
 mod class_logger;
+mod colors;
 mod log_level;
 mod logger;
 

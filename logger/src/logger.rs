@@ -1,15 +1,22 @@
 use std::ffi::CString;
+use std::io::IsTerminal;
 
+use crate::colors::Colors;
 use crate::{global_log_level, LogLevel};
 
 #[doc(hidden)]
 pub fn __log(log_level: LogLevel, file: &str, msg: &str) {
+    let istty = std::io::stdout().is_terminal();
+    let mut time = format!("[{}]", current_time());
+    let mut lvl = format!("[{log_level:5}]");
+    let mut file_str = file[0..file.find('/').unwrap_or(file.len())].to_string();
+    if istty {
+        time = format!("{}{time}{}", Colors::LightGreen, Colors::Reset);
+        lvl = format!("{}{lvl}{}", log_level.color(), Colors::Reset);
+        file_str = format!("{}{file_str}{}", Colors::LightCyan, Colors::Reset);
+    }
     if log_level >= *global_log_level() {
-        println!(
-            "[{}][{log_level:5}] {:>8}: {msg}",
-            current_time(),
-            &file[0..file.find('/').unwrap_or(file.len())]
-        );
+        println!("{time}{lvl} {file_str:>8}: {msg}",);
     }
 }
 
