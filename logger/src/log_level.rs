@@ -1,3 +1,5 @@
+use crate::colors::Colors;
+
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
 pub enum LogLevel {
     DEBUG,
@@ -28,5 +30,16 @@ impl std::fmt::Display for LogLevel {
             LogLevel::DEBUG => "DEBUG",
         };
         f.pad(val)
+    }
+}
+
+impl LogLevel {
+    pub fn color(&self) -> Colors {
+        match self {
+            LogLevel::DEBUG => Colors::DarkGray,
+            LogLevel::INFO => Colors::Blue,
+            LogLevel::WARN => Colors::Yellow,
+            LogLevel::ERROR => Colors::LightRed,
+        }
     }
 }
