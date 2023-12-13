@@ -31,7 +31,7 @@ impl std::fmt::Display for Process {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let pid_or_error = match &self.child {
             Ok(child) => child.id().to_string(),
-            Err(err) => err.to_string(),
+            Err(err) => format!("Error: {err}"),
         };
         write!(f, "{:15} {}", self.status, pid_or_error)
     }
@@ -46,6 +46,7 @@ impl Process {
                 status:    ProcessStatus::FailedToStart,
             };
         }
+
         Process {
             child:     program.command.spawn(),
             exit_code: 0,
