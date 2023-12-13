@@ -99,13 +99,14 @@ impl BackEnd {
 }
 
 fn get_diff(
-    first: &HashMap<String, ProgramConfig>,
-    second: &HashMap<String, ProgramConfig>,
+    first_list: &HashMap<String, ProgramConfig>,
+    second_list: &HashMap<String, ProgramConfig>,
 ) -> HashMap<String, ProgramConfig> {
-    first
+    first_list
         .iter()
-        .filter(|&(key, program)| {
-            !second.contains_key(key) || has_major_changes(program, &second[key])
+        .filter(|&(key_in_first, config)| {
+            !second_list.contains_key(key_in_first)
+                || has_major_changes(config, &second_list[key_in_first])
         })
         .map(|(key, program)| (key.to_owned(), program.clone()))
         .collect()
