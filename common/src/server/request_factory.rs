@@ -1,4 +1,4 @@
-use std::collections::{HashMap, LinkedList, VecDeque};
+use std::collections::{HashMap, VecDeque};
 
 use logger::debug;
 
@@ -26,10 +26,10 @@ impl RequestFactory {
     }
 
     pub fn build_request(&mut self, request: &str) -> Request {
-        let mut s: LinkedList<String> = request.split(' ').map(Into::into).collect();
+        let v: Vec<&str> = request.split_whitespace().collect();
         Request {
-            command: s.pop_front().unwrap(),
-            arguments: s.into_iter().collect(),
+            command: v.first().unwrap().to_string(),
+            arguments: v[1..].iter().map(|x| x.to_string()).collect(),
             ..Default::default()
         }
     }
