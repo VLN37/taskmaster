@@ -4,7 +4,7 @@ programs:
         command: "bash"
         args:
           - "-c"
-          - "echo oi; exit 1"
+          - "echo hello world; exit 1"
         processes: 1
         # run_at_startup: true,
         # retry_start_count: 3,
@@ -18,10 +18,10 @@ programs:
         # umask:                 420,
     sleep:
         command: "bash"
-        args: ['-c', 'sleep 3; exit 42']
+        args: ['-c', 'echo this process will die in 3 seconds; sleep 3; exit 42']
     echo:
         command: "echo"
-        args: ["the arguments"]
+        args: ["this is the echo's message"]
         processes: 3
     weird_wierd:
         command: "ialakkkkkkkazideiaprogram"
