@@ -100,14 +100,23 @@ impl Process {
     }
 
     pub fn try_start_again(&mut self, command: &mut Command) {
-        info!("Trying again to start process {:?}", command.get_program());
         self.should_try_again = false;
-        self.child = Process::spawn_process(command);
+        if self.status == ProcessStatus::FailedToStart {
+            return;
+        }
         self.try_count += 1;
+        info!(
+            "Trying to start process again [retry {}] {:?}",
+            self.try_count,
+            command.get_program(),
+        );
+
+        self.child = Process::spawn_process(command);
+        self.started_at = Some(Instant::now());
     }
 
     fn handle_starting_phase(&mut self, config: &ProgramConfig) {
-        if self.try_count > config.retry_start_count {
+        if self.try_count >= config.retry_start_count {
             self.status = ProcessStatus::FailedToStart;
         } else {
             let time_elapsed = self.time_elapsed();
@@ -145,10 +154,10 @@ impl Process {
                                 );
                             }
                         } else {
-                            todo!("request restart");
+                            self.should_try_again = true;
                         }
                     }
-                    Err(_) => todo!("request restart"),
+                    Err(_) => todo!("How could the wait fail?"),
                 }
             }
         }
