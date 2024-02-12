@@ -55,7 +55,7 @@ impl BackEnd {
     fn start_procesess(programs: &mut HashMap<String, Program>) {
         programs.iter_mut().for_each(|(_, program)| {
             program.processes = (0..program.config.processes)
-                .map(|_| Process::start(program))
+                .map(|_| Process::start(&mut program.command))
                 .collect();
 
             program.update_process_status();

@@ -1,12 +1,11 @@
 use std::io::{self, Error};
 use std::os::unix::process::ExitStatusExt;
-use std::process::Child;
+use std::process::{Child, Command};
 #[cfg(not(test))]
 use std::time::{Duration, Instant};
 
 use logger::{error, info};
 
-use crate::backend::program::Program;
 use crate::config::{ProgramConfig, RestartOption, Signal};
 
 #[cfg(test)]
@@ -25,10 +24,11 @@ pub enum ProcessStatus {
 }
 
 pub struct Process {
-    pub child:      Result<Child, Error>,
-    pub status:     ProcessStatus,
-    pub try_count:  u32,
-    pub started_at: Option<Instant>,
+    pub child:          Result<Child, Error>,
+    pub status:         ProcessStatus,
+    pub try_count:      u32,
+    pub started_at:     Option<Instant>,
+    pub should_restart: bool,
 }
 
 impl Process {
@@ -46,15 +46,27 @@ impl Process {
         }
     }
 
-    pub fn start(program: &mut Program) -> Process {
-        if program.command.get_program() == "" {
-            return Process::new(
-                Err(Error::new(io::ErrorKind::Other, "Empty command")),
-                ProcessStatus::FailedToStart,
-            );
+    fn spawn_process(command: &mut Command) -> Result<Child, Error> {
+        if command.get_program() == "" {
+            return Err(Error::new(io::ErrorKind::Other, "Empty command"));
         }
 
-        Process::new(program.command.spawn(), ProcessStatus::Starting)
+        command.spawn()
+    }
+
+    pub fn start(command: &mut Command) -> Process {
+        let child = Process::spawn_process(command);
+
+        let status = if child
+            .as_ref()
+            .is_err_and(|err| err.to_string() == "Empty command")
+        {
+            ProcessStatus::FailedToStart
+        } else {
+            ProcessStatus::Starting
+        };
+
+        Process::new(child, status)
     }
 
     pub fn update_status(&mut self, config: &ProgramConfig) {
@@ -73,6 +85,26 @@ impl Process {
         }
 
         // self.update_status_match(config);
+    }
+
+    pub fn is_dead(&self) -> bool {
+        matches!(
+            self.status,
+            ProcessStatus::FailedToStart
+                | ProcessStatus::GracefulExit(_)
+                | ProcessStatus::Killed(_)
+                | ProcessStatus::FailedExit(_)
+        )
+    }
+
+    pub fn restart(&mut self, command: &mut Command) {
+        info!("Restarting process... {:?}", command.get_program());
+        if self.status == ProcessStatus::FailedToStart {
+            return;
+        }
+
+        self.child = Process::spawn_process(command);
+        self.try_count += 1;
     }
 
     fn handle_starting_phase(&mut self, config: &ProgramConfig) {
@@ -191,10 +223,14 @@ impl std::fmt::Display for ProcessStatus {
 impl Default for Process {
     fn default() -> Self {
         Process {
-            child:      Err(Error::new(io::ErrorKind::Other, "Unititialized process")),
-            status:     ProcessStatus::FailedToStart,
-            try_count:  0,
-            started_at: None,
+            child:          Err(Error::new(
+                io::ErrorKind::Other,
+                "Unititialized process",
+            )),
+            status:         ProcessStatus::FailedToStart,
+            try_count:      0,
+            started_at:     None,
+            should_restart: false,
         }
     }
 }
@@ -239,7 +275,7 @@ mod tests {
         config.restart = RestartOption::NEVER;
         let mut program = Program::build_from((&config_name, &config));
         // when
-        let process = Process::start(&mut program);
+        let process = Process::start(&mut program.command);
         // then
         assert!(process.child.is_ok());
     }
@@ -254,7 +290,7 @@ mod tests {
         config.restart = RestartOption::NEVER;
         let mut program = Program::build_from((&config_name, &config));
         // when
-        let process = Process::start(&mut program);
+        let process = Process::start(&mut program.command);
         // then
         assert_eq!(process.status, ProcessStatus::Starting);
     }
@@ -274,7 +310,7 @@ mod tests {
         let mut program = Program::build_from((&config_name, &config));
 
         // when
-        let mut process = Process::start(&mut program);
+        let mut process = Process::start(&mut program.command);
 
         // then
         // start as starting
@@ -301,7 +337,7 @@ mod tests {
         config.success_codes = vec![0];
         let mut program = Program::build_from((&config_name, &config));
         // when
-        let mut process = Process::start(&mut program);
+        let mut process = Process::start(&mut program.command);
         // then
         assert_eq!(process.status, ProcessStatus::Starting);
         process.child.as_mut().unwrap().wait().unwrap();
@@ -320,7 +356,7 @@ mod tests {
         config.restart = RestartOption::NEVER;
         let mut program = Program::build_from((&config_name, &config));
         // when
-        let mut process = Process::start(&mut program);
+        let mut process = Process::start(&mut program.command);
         // then
         assert_eq!(process.status, ProcessStatus::Starting);
         process.child.as_mut().unwrap().kill().unwrap();
@@ -353,7 +389,7 @@ mod tests {
         config.restart = RestartOption::NEVER;
         let mut program = Program::build_from((&config_name, &config));
         // when
-        let mut process = Process::start(&mut program);
+        let mut process = Process::start(&mut program.command);
         // then
         assert_eq!(process.status, ProcessStatus::Starting);
         send_signal(
@@ -382,7 +418,7 @@ mod tests {
         config.succesful_start_after = 5;
 
         let mut program = Program::build_from((&config_name, &config));
-        let mut process = Process::start(&mut program);
+        let mut process = Process::start(&mut program.command);
         assert_eq!(process.status, ProcessStatus::Starting);
 
         time_stub::Instant::advance(2);
@@ -404,7 +440,7 @@ mod tests {
         config.restart = RestartOption::NEVER;
         config.succesful_start_after = 5;
         let mut program = Program::build_from((&config_name, &config));
-        let mut process = Process::start(&mut program);
+        let mut process = Process::start(&mut program.command);
         assert_eq!(process.status, ProcessStatus::Starting);
         time_stub::Instant::advance(6);
         // when
