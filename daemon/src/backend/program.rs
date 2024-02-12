@@ -40,6 +40,8 @@ impl Program {
             p.update_status(&self.config);
             if p.should_restart {
                 p.restart(&mut self.command);
+            } else if p.should_try_again {
+                p.try_start_again(&mut self.command);
             }
         })
     }
