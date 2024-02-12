@@ -32,7 +32,7 @@ impl Default for ProgramConfig {
             processes:             1,
             run_at_startup:        true,
             retry_start_count:     3,
-            restart:               RestartOption::NEVER,
+            restart:               RestartOption::ONERROR,
             graceful_exit:         Signal::SIGQUIT,
             ttk:                   10,
             success_codes:         vec![0],

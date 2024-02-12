@@ -24,11 +24,12 @@ pub enum ProcessStatus {
 }
 
 pub struct Process {
-    pub child:          Result<Child, Error>,
-    pub status:         ProcessStatus,
-    pub try_count:      u32,
-    pub started_at:     Option<Instant>,
-    pub should_restart: bool,
+    pub child:            Result<Child, Error>,
+    pub status:           ProcessStatus,
+    pub try_count:        u32,
+    pub started_at:       Option<Instant>,
+    pub should_try_again: bool,
+    pub should_restart:   bool,
 }
 
 impl Process {
@@ -87,22 +88,20 @@ impl Process {
         // self.update_status_match(config);
     }
 
-    pub fn is_dead(&self) -> bool {
-        matches!(
-            self.status,
-            ProcessStatus::FailedToStart
-                | ProcessStatus::GracefulExit(_)
-                | ProcessStatus::Killed(_)
-                | ProcessStatus::FailedExit(_)
-        )
-    }
-
     pub fn restart(&mut self, command: &mut Command) {
-        info!("Restarting process... {:?}", command.get_program());
+        self.should_restart = false;
         if self.status == ProcessStatus::FailedToStart {
             return;
         }
 
+        info!("Restarting process {:?}", command.get_program());
+        self.child = Process::spawn_process(command);
+        self.status = ProcessStatus::Starting;
+    }
+
+    pub fn try_start_again(&mut self, command: &mut Command) {
+        info!("Trying again to start process {:?}", command.get_program());
+        self.should_try_again = false;
         self.child = Process::spawn_process(command);
         self.try_count += 1;
     }
@@ -129,13 +128,16 @@ impl Process {
                                 if config.success_codes.contains(&(code as u32)) {
                                     self.status =
                                         ProcessStatus::GracefulExit(code as u32);
+                                    self.handle_graceful_exit_phase(config);
                                 } else {
                                     self.status =
                                         ProcessStatus::FailedExit(code as u32);
+                                    self.handle_failed_exit_phase(config);
                                 }
                             } else if let Some(signal) = status.signal() {
                                 self.status =
                                     ProcessStatus::Killed(Signal::from(signal));
+                                self.handle_killed_phase(config)
                             } else {
                                 error!(
                                     "Error evaluating process status: : {}",
@@ -183,8 +185,7 @@ impl Process {
     fn handle_graceful_exit_phase(&mut self, config: &ProgramConfig) {
         match config.restart {
             RestartOption::ALWAYS => {
-                info!("Restarting process... {}", config.command);
-                dbg!(config);
+                self.should_restart = true;
             }
             RestartOption::ONERROR => {}
             RestartOption::NEVER => {}
@@ -193,17 +194,17 @@ impl Process {
 
     fn handle_killed_phase(&mut self, config: &ProgramConfig) {
         match config.restart {
-            RestartOption::ALWAYS => todo!(),
-            RestartOption::ONERROR => todo!(),
+            RestartOption::ALWAYS | RestartOption::ONERROR => {
+                self.should_restart = true;
+            }
             RestartOption::NEVER => {}
         }
     }
 
     fn handle_failed_exit_phase(&mut self, config: &ProgramConfig) {
-        info!("Process failed: {}", config.command);
         match config.restart {
             RestartOption::ALWAYS | RestartOption::ONERROR => {
-                info!("Restarting process... {}", config.command)
+                self.should_restart = true;
             }
             RestartOption::NEVER => {}
         }
@@ -223,14 +224,15 @@ impl std::fmt::Display for ProcessStatus {
 impl Default for Process {
     fn default() -> Self {
         Process {
-            child:          Err(Error::new(
+            child:            Err(Error::new(
                 io::ErrorKind::Other,
                 "Unititialized process",
             )),
-            status:         ProcessStatus::FailedToStart,
-            try_count:      0,
-            started_at:     None,
-            should_restart: false,
+            status:           ProcessStatus::FailedToStart,
+            try_count:        0,
+            started_at:       None,
+            should_restart:   false,
+            should_try_again: false,
         }
     }
 }
@@ -447,5 +449,26 @@ mod tests {
         process.update_status(&config);
         // then
         assert_eq!(process.status, ProcessStatus::Active);
+    }
+
+    #[test]
+    fn process_should_restart_if_it_exits_with_an_error_code_and_restart_option_is_always(
+    ) {
+        // given
+        let config_name = String::from("test");
+        let mut config = ProgramConfig::new();
+        config.command = String::from("bash");
+        config.args.push(String::from("-c"));
+        config.args.push(String::from("exit 1"));
+        config.restart = RestartOption::ALWAYS;
+        let mut program = Program::build_from((&config_name, &config));
+
+        // when
+        let mut process = Process::start(&mut program.command);
+        process.child.as_mut().unwrap().wait().unwrap();
+        process.update_status(&config);
+
+        // then
+        assert!(process.should_restart);
     }
 }
