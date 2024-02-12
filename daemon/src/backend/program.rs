@@ -36,8 +36,11 @@ impl Program {
     }
 
     pub fn update_process_status(&mut self) {
-        self.processes
-            .iter_mut()
-            .for_each(|p| p.update_status(&self.config))
+        self.processes.iter_mut().for_each(|p| {
+            p.update_status(&self.config);
+            if p.should_restart {
+                p.restart(&mut self.command);
+            }
+        })
     }
 }
