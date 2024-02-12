@@ -24,47 +24,11 @@ pub enum ProcessStatus {
     FailedExit(u32),
 }
 
-impl std::fmt::Display for ProcessStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.pad(&format!("{:?}", self))
-    }
-}
-
 pub struct Process {
     pub child:      Result<Child, Error>,
     pub status:     ProcessStatus,
     pub try_count:  u32,
     pub started_at: Option<Instant>,
-}
-
-impl Default for Process {
-    fn default() -> Self {
-        Process {
-            child:      Err(Error::new(io::ErrorKind::Other, "Unititialized process")),
-            status:     ProcessStatus::FailedToStart,
-            try_count:  0,
-            started_at: None,
-        }
-    }
-}
-
-impl std::fmt::Display for Process {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let pid_or_error = match &self.child {
-            Ok(child) => child.id().to_string(),
-            Err(err) => format!("Error: {err}"),
-        };
-
-        let exit_code = match self.status {
-            ProcessStatus::GracefulExit(code) | ProcessStatus::FailedExit(code) => {
-                format!("Exit code: {}", code)
-            }
-            ProcessStatus::Killed(signal) => format!("Signaled: {:?}", signal),
-            _ => "".to_string(),
-        };
-
-        write!(f, "{:15} {:15} {}", self.status, exit_code, pid_or_error)
-    }
 }
 
 impl Process {
@@ -215,6 +179,42 @@ impl Process {
 
     fn time_elapsed(&mut self) -> Duration {
         self.started_at.get_or_insert(Instant::now()).elapsed()
+    }
+}
+
+impl std::fmt::Display for ProcessStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.pad(&format!("{:?}", self))
+    }
+}
+
+impl Default for Process {
+    fn default() -> Self {
+        Process {
+            child:      Err(Error::new(io::ErrorKind::Other, "Unititialized process")),
+            status:     ProcessStatus::FailedToStart,
+            try_count:  0,
+            started_at: None,
+        }
+    }
+}
+
+impl std::fmt::Display for Process {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let pid_or_error = match &self.child {
+            Ok(child) => child.id().to_string(),
+            Err(err) => format!("Error: {err}"),
+        };
+
+        let exit_code = match self.status {
+            ProcessStatus::GracefulExit(code) | ProcessStatus::FailedExit(code) => {
+                format!("Exit code: {}", code)
+            }
+            ProcessStatus::Killed(signal) => format!("Signaled: {:?}", signal),
+            _ => "".to_string(),
+        };
+
+        write!(f, "{:15} {:15} {}", self.status, exit_code, pid_or_error)
     }
 }
 
