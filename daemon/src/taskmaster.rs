@@ -1,6 +1,6 @@
 pub mod status;
 use std::fs::File;
-use std::io;
+use std::io::{self, Error};
 
 use common::server::{Key, RequestFactory, Server, SERVER_KEY};
 use common::CONFIG_PATH;
@@ -49,16 +49,7 @@ impl TaskMaster {
                 continue;
             }
             if (ev.events & libc::EPOLLIN as u32) != 0 {
-                if let Ok(mut msg) = self.server.recv(key) {
-                    self.factory.insert(key, &mut msg);
-                    info!("#{key} REQUEST READ");
-                    if let Some(request) = self.factory.parse(key) {
-                        self.backend.clients.insert(key, request);
-                        self.server.modify_interest(key, Server::write_event(key))?;
-                    } else {
-                        self.server.modify_interest(key, Server::read_event(key))?;
-                    }
-                } else {
+                if self.receive(key).is_err() {
                     self.server.clients.remove(&key);
                     continue;
                 }
@@ -73,6 +64,32 @@ impl TaskMaster {
                 error!("Unexpected event: {}", ev);
             }
         }
+        Ok(())
+    }
+
+    pub fn receive(&mut self, key: Key) -> io::Result<()> {
+        match self.server.recv(key) {
+            Ok(mut msg) => {
+                self.factory.insert(key, &mut msg);
+                info!("#{key} REQUEST READ");
+                if let Some(request) = self.factory.parse(key) {
+                    self.backend.clients.insert(key, request);
+                    self.server.modify_interest(key, Server::write_event(key))?;
+                } else {
+                    self.server.modify_interest(key, Server::read_event(key))?;
+                }
+                Ok(())
+            }
+            Err(err) => Err(Error::from(err.kind())),
+        }
+    }
+
+    pub fn respond(&mut self, key: Key) -> io::Result<()> {
+        let msg = self.backend.get_response_for(key);
+        self.server.send(key, &msg)?;
+        // should close the request when Response object is finished
+        // we will know if the backend is done with it, now we don't
+        info!("#{key} RESPONSE SENT");
         Ok(())
     }
 
