@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use common::server::{Key, Request};
-use logger::info;
+use logger::{debug, info};
 
 mod print_functions;
 mod process;
@@ -86,7 +86,7 @@ impl BackEnd {
     }
 
     pub fn dump_processes_status(&self) {
-        info!("{}", print_processes(&self.programs));
+        debug!("{}", print_processes(&self.programs));
     }
 }
 
