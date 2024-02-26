@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use daemon::defs::DFL_CONFIG_FILE;
 use daemon::taskmaster::{Status, TaskMaster};
 use logger::info;
 
@@ -9,7 +10,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     '_config: loop {
         info!("Configuring...");
         match taskmaster.status {
-            Status::Starting => taskmaster.build()?,
+            Status::Starting => taskmaster.build(DFL_CONFIG_FILE)?,
             Status::Reloading => taskmaster.reload()?,
             Status::Active => info!("All Good!"),
         }

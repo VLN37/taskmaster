@@ -5,7 +5,7 @@ use std::os::unix::net::UnixListener;
 use std::path::Path;
 
 use common::server::Server;
-use common::CONFIG_PATH;
+use daemon::defs::DFL_CONFIG_FILE;
 use daemon::BackEnd;
 use logger::{debug, info, warning};
 
@@ -34,7 +34,7 @@ fn _other() -> Result<(), Box<dyn Error>> {
     let mut server = Server::new("abc");
     server.build()?;
     let _backend = BackEnd::new(
-        File::open(CONFIG_PATH)
+        File::open(DFL_CONFIG_FILE)
             .expect("Failed to open config file")
             .into(),
     );
