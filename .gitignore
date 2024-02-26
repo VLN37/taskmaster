@@ -1,4 +1,6 @@
 /target
 taskmaster-socket
+daemon-socket
+ctl-socket
 .vscode
 supervisor*
