@@ -8,7 +8,7 @@ use logger::{debug, error, info};
 pub use status::Status;
 
 use crate::signal_handling::install_sighup_handler;
-use crate::BackEnd;
+use crate::{defs, BackEnd};
 
 #[derive(Default)]
 pub struct TaskMaster {
@@ -19,7 +19,12 @@ pub struct TaskMaster {
 }
 
 impl TaskMaster {
-    pub fn new() -> TaskMaster { TaskMaster::default() }
+    pub fn new() -> TaskMaster {
+        TaskMaster {
+            server: Server::new(defs::DFL_SOCKET_NAME),
+            ..TaskMaster::default()
+        }
+    }
 
     pub fn build(&mut self) -> io::Result<()> {
         self.server.build()?;
@@ -54,10 +59,7 @@ impl TaskMaster {
                     continue;
                 }
             } else if (ev.events & libc::EPOLLOUT as u32) != 0 {
-                let msg = self.backend.get_response_for(key);
-                self.server.send(key, &msg)?;
-                // should close the request when Response object is finished
-                // we will know if the backend is done with it, now we don't
+                self.respond(key)?;
                 info!("#{key} RESPONSE SENT");
             } else {
                 let ev = ev.events;

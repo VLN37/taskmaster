@@ -5,3 +5,5 @@ pub mod taskmaster;
 
 pub use backend::BackEnd;
 pub use config::TaskMasterConfig;
+
+mod defs;

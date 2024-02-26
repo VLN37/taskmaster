@@ -11,7 +11,7 @@ use logger::{debug, info, warning};
 
 // cargo run -p daemon --example server
 fn main() {
-    let socket = Path::new(common::SOCKET_PATH);
+    let socket = Path::new(common::DFL_SERVER_SOCKET_PATH);
     if socket.exists() {
         std::fs::remove_file(socket).unwrap();
         info!("previous socket removed");
@@ -31,7 +31,7 @@ fn main() {
 
 // naive server
 fn _other() -> Result<(), Box<dyn Error>> {
-    let mut server = Server::new();
+    let mut server = Server::new("abc");
     server.build()?;
     let _backend = BackEnd::new(
         File::open(CONFIG_PATH)
