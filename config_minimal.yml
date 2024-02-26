@@ -1,0 +1,8 @@
+command: "bash"
+programs:
+    echo:
+        command: "echo"
+        args: ["the arguments"]
+        processes: 3
+    # env:
+    #     command: "env"
