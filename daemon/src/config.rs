@@ -35,13 +35,14 @@ mod test {
     use logger::debug;
 
     use super::*;
+    use crate::defs;
 
     #[test]
     fn config_parse_test() {
         let manifest = String::from(env!("CARGO_MANIFEST_DIR"));
         debug!("{manifest}");
         let index = manifest.find("/daemon").unwrap();
-        let root = format!("{}/{}", &manifest[..index], common::CONFIG_PATH);
+        let root = format!("{}/{}", &manifest[..index], defs::DFL_CONFIG_FILE);
         let f = std::fs::File::open(root).expect("Could not open file.");
         let config = self::TaskMasterConfig::read(f);
         assert!(config.is_ok());

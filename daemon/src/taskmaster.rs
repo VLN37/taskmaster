@@ -3,7 +3,6 @@ use std::fs::File;
 use std::io::{self, Error};
 
 use common::server::{Key, RequestFactory, Server, SERVER_KEY};
-use common::CONFIG_PATH;
 use logger::{debug, error, info};
 pub use status::Status;
 
@@ -12,10 +11,11 @@ use crate::{defs, BackEnd};
 
 #[derive(Default)]
 pub struct TaskMaster {
-    pub server:  Server,
-    pub backend: BackEnd,
-    pub status:  Status,
-    pub factory: RequestFactory,
+    pub server:      Server,
+    pub backend:     BackEnd,
+    pub status:      Status,
+    pub factory:     RequestFactory,
+    config_filename: String,
 }
 
 impl TaskMaster {
@@ -26,10 +26,11 @@ impl TaskMaster {
         }
     }
 
-    pub fn build(&mut self) -> io::Result<()> {
+    pub fn build(&mut self, config_filename: &str) -> io::Result<()> {
         self.server.build()?;
-        self.backend = BackEnd::new(File::open(CONFIG_PATH)?.into());
-
+        let file = File::open(config_filename)?;
+        self.config_filename = config_filename.into();
+        self.backend = BackEnd::new(file.into());
         self.backend.start();
 
         let ptr: *mut Status = &mut self.status;
@@ -37,6 +38,18 @@ impl TaskMaster {
             *ptr = Status::Reloading;
         });
         self.status = Status::Active;
+        Ok(())
+    }
+
+    pub fn reload(&mut self) -> io::Result<()> {
+        let file = File::open(&self.config_filename)?;
+        if let Status::Reloading = self.status {
+            debug!("Reloading!!!");
+            self.backend
+                .update(file.into())
+                .expect("Failed to reload config");
+            self.status = Status::Active;
+        };
         Ok(())
     }
 
@@ -92,17 +105,6 @@ impl TaskMaster {
         // should close the request when Response object is finished
         // we will know if the backend is done with it, now we don't
         info!("#{key} RESPONSE SENT");
-        Ok(())
-    }
-
-    pub fn reload(&mut self) -> io::Result<()> {
-        if let Status::Reloading = self.status {
-            debug!("Reloading!!!");
-            self.backend
-                .update(File::open(CONFIG_PATH)?.into())
-                .expect("Failed to reload config");
-            self.status = Status::Active;
-        };
         Ok(())
     }
 }
