@@ -3,11 +3,12 @@ use std::fs::File;
 use std::io::{self, Error};
 
 use common::server::{Key, RequestFactory, Server, SERVER_KEY};
+use common::DAEMON_SOCKET_PATH;
 use logger::{debug, error, info};
 pub use status::Status;
 
 use crate::signal_handling::install_sighup_handler;
-use crate::{defs, BackEnd};
+use crate::BackEnd;
 
 #[derive(Default)]
 pub struct TaskMaster {
@@ -21,7 +22,7 @@ pub struct TaskMaster {
 impl TaskMaster {
     pub fn new() -> TaskMaster {
         TaskMaster {
-            server: Server::new(defs::DFL_SOCKET_NAME),
+            server: Server::new(DAEMON_SOCKET_PATH),
             ..TaskMaster::default()
         }
     }
@@ -57,7 +58,7 @@ impl TaskMaster {
         // info!("#{} AWAITING", self.server.key);
         self.server.epoll_wait()?;
         self.backend.update_processes_status();
-        self.backend.dump_processes_status();
+        // self.backend.dump_processes_status();
         for ev in self.server.get_events() {
             let key: Key = ev.u64;
             if key == SERVER_KEY {
