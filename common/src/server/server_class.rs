@@ -177,10 +177,10 @@ impl Server {
 
 impl Default for Server {
     fn default() -> Server {
-        if Path::new(crate::DFL_SERVER_SOCKET_PATH).exists() {
-            std::fs::remove_file(crate::DFL_SERVER_SOCKET_PATH).unwrap();
+        if Path::new("PLACEHOLDER").exists() {
+            std::fs::remove_file("PLACEHOLDER").unwrap();
         }
-        let socket = match UnixListener::bind(crate::DFL_SERVER_SOCKET_PATH) {
+        let socket = match UnixListener::bind("PLACEHOLDER") {
             Ok(val) => val,
             Err(e) => panic!("{e:?}"),
         };
