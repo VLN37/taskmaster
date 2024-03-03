@@ -13,6 +13,7 @@ use libc::{
     EPOLL_CTL_ADD,
     EPOLL_CTL_DEL,
     EPOLL_CTL_MOD,
+    STDIN_FILENO,
 };
 use logger::{debug, error, info, warning};
 
@@ -102,19 +103,28 @@ impl Server {
     }
 
     pub fn add_interest(&self, key: Key, mut event: epoll_event) -> io::Result<()> {
-        let fd = self.clients.get(&key).unwrap().as_raw_fd();
+        let mut fd: i32 = 0;
+        if key != STDIN_FILENO as Key {
+            fd = self.clients.get(&key).unwrap().as_raw_fd();
+        }
         syscall!(epoll_ctl(self.pollfd, EPOLL_CTL_ADD, fd, &mut event))?;
         Ok(())
     }
 
     pub fn modify_interest(&self, key: Key, mut event: epoll_event) -> io::Result<()> {
-        let fd = self.clients.get(&key).unwrap().as_raw_fd();
+        let mut fd: i32 = 0;
+        if key != STDIN_FILENO as Key {
+            fd = self.clients.get(&key).unwrap().as_raw_fd();
+        }
         syscall!(epoll_ctl(self.pollfd, EPOLL_CTL_MOD, fd, &mut event))?;
         Ok(())
     }
 
     pub fn remove_interest(&self, key: Key) -> io::Result<()> {
-        let fd = self.clients.get(&key).unwrap().as_raw_fd();
+        let mut fd: i32 = 0;
+        if key != STDIN_FILENO as Key {
+            fd = self.clients.get(&key).unwrap().as_raw_fd();
+        }
         syscall!(epoll_ctl(self.pollfd, EPOLL_CTL_DEL, fd, std::ptr::null_mut()))?;
         Ok(())
     }
@@ -123,6 +133,13 @@ impl Server {
         epoll_event {
             events: EPOLLIN as u32,
             u64:    SERVER_KEY,
+        }
+    }
+
+    pub fn read_write_event(key: Key) -> epoll_event {
+        epoll_event {
+            events: (EPOLLOUT | EPOLLIN) as u32,
+            u64:    key,
         }
     }
 
@@ -140,7 +157,21 @@ impl Server {
         }
     }
 
+    fn recv_stdin(&self) -> io::Result<String> {
+        let mut buf = String::new();
+        std::io::stdin().read_line(&mut buf)?;
+        buf.pop();
+        let stdin = STDIN_FILENO as Key;
+        debug!("{:10}: {}", "user", buf);
+        self.modify_interest(stdin, Server::read_event(stdin))?;
+        Ok(buf)
+    }
+
     pub fn recv(&mut self, key: Key) -> io::Result<String> {
+        if key == STDIN_FILENO as Key {
+            return self.recv_stdin();
+        }
+
         let mut buf = String::new();
         if let Some(client) = self.clients.get_mut(&key) {
             match client.read_to_string(&mut buf) {
