@@ -160,9 +160,8 @@ impl Server {
     fn recv_stdin(&self) -> io::Result<String> {
         let mut buf = String::new();
         std::io::stdin().read_line(&mut buf)?;
-        buf.pop();
         let stdin = STDIN_FILENO as Key;
-        debug!("{:10}: {}", "user", buf);
+        debug!("{:13}: |{}|", "STDIN", buf.escape_default());
         self.modify_interest(stdin, Server::read_event(stdin))?;
         Ok(buf)
     }
@@ -172,16 +171,17 @@ impl Server {
             return self.recv_stdin();
         }
 
-        let mut buf = String::new();
+        let mut buf = [0_u8; 1024];
         if let Some(client) = self.clients.get_mut(&key) {
-            match client.read_to_string(&mut buf) {
+            match client.read(&mut buf) {
                 Ok(bytes) => {
                     if bytes == 0 {
                         warning!("#{key} DROPPED BY CLIENT (READ 0 BYTES)");
                         return Err(io::Error::from_raw_os_error(32));
                     }
-                    debug!("#{key} RECEIVED: |{}|", buf.escape_default());
-                    Ok(buf)
+                    let res = String::from_utf8(buf[0..bytes].into()).unwrap();
+                    debug!("#{key} RECEIVED: |{}|", res.escape_default());
+                    Ok(res)
                 }
                 Err(e) => {
                     self.remove_interest(key)?;
@@ -198,7 +198,6 @@ impl Server {
     pub fn send(&mut self, key: Key, msg: &String) -> io::Result<()> {
         if let Some(client) = self.clients.get_mut(&key) {
             client.write_all(msg.as_bytes())?;
-            client.shutdown(std::net::Shutdown::Both)?;
         } else {
             error!("server: invalid key {key}");
         }
