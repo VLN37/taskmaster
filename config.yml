@@ -1,36 +1,38 @@
 command: "bash"
 programs:
-    bash:
-        command: "bash"
-        args:
-          - "-c"
-          - "echo hello world; exit 1"
-        processes: 1
-        # run_at_startup: true,
-        # retry_start_count: 3,
-        restart: ONERROR
-        graceful_exit: SIGTERM
-        ttk: 5 # seconds
-        success_codes: [0, 1]
-        # succesful_start_after: 5
-        # workdir:               /home/user,
-        # environment_variables: "VARIABLE=value;OTHER=value",
-        # umask:                 420,
+    # bash:
+    #     command: "bash"
+    #     args:
+    #       - "-c"
+    #       - "echo hello world; exit 1"
+    #     processes: 1
+    #     # run_at_startup: true,
+    #     # retry_start_count: 3,
+    #     restart: ONERROR
+    #     graceful_exit: SIGTERM
+    #     ttk: 5 # seconds
+    #     success_codes: [0, 1]
+    #     # succesful_start_after: 5
+    #     # workdir:               /home/user,
+    #     # environment_variables: "VARIABLE=value;OTHER=value",
+    #     # umask:                 420,
     sleep:
         command: "bash"
         args: ['-c', 'echo this process will die in 3 seconds; sleep 3; exit 42']
-        restart: ALWAYS
-    echo:
-        command: "echo"
-        args: ["this is the echo's message"]
-        processes: 3
-    weird_wierd:
-        command: "ialakkkkkkkazideiaprogram"
-        args: ["the arguments"]
-        processes: 2
-    empty_command:
-        command: ""
-        args: ["the arguments"]
-        processes: 1
+        restart: ONERROR
+        retry_start_count: 3
+        succesful_start_after: 5
+    # echo:
+    #     command: "echo"
+    #     args: ["this is the echo's message"]
+    #     processes: 3
+    # weird_wierd:
+    #     command: "ialakkkkkkkazideiaprogram"
+    #     args: ["the arguments"]
+    #     processes: 2
+    # empty_command:
+    #     command: ""
+    #     args: ["the arguments"]
+    #     processes: 1
     # env:
     #     command: "env"
