@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::process::Command;
 
@@ -44,5 +45,23 @@ impl Program {
                 p.try_start_again(&mut self.command);
             }
         })
+    }
+
+    pub fn update_process_count(&mut self) {
+        let current_count = self.processes.len();
+        let desired_count = self.config.processes;
+        match current_count.cmp(&desired_count) {
+            Ordering::Less => {
+                for _ in 0..desired_count - current_count {
+                    self.processes.push(Process::start(&mut self.command));
+                }
+            }
+            Ordering::Greater => {
+                for _ in 0..current_count - desired_count {
+                    self.processes.pop();
+                }
+            }
+            _ => {}
+        }
     }
 }
