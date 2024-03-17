@@ -45,7 +45,7 @@ impl BackEnd {
         print_programs("initial programs", &self.config.programs);
         self.programs = Self::create_programs(&self.config.programs);
 
-        Self::start_procesess(&mut self.programs);
+        Self::create_startup_processes(&mut self.programs);
 
         print_processes(&self.programs);
     }
@@ -92,6 +92,24 @@ impl BackEnd {
             .map(|config_pair| {
                 (config_pair.0.to_owned(), Program::build_from(config_pair))
             })
+            .collect()
+    }
+
+    fn create_startup_processes(programs: &mut HashMap<String, Program>) {
+        programs
+            .iter_mut()
+            .filter(|(_, program)| program.config.run_at_startup)
+            .for_each(|(_, program)| {
+                program.processes =
+                    Self::create_processes(program, program.config.processes);
+
+                program.update_process_status();
+            });
+    }
+
+    fn create_processes(program: &mut Program, count: usize) -> Vec<Process> {
+        (0..count)
+            .map(|_| Process::start(&mut program.command))
             .collect()
     }
 
