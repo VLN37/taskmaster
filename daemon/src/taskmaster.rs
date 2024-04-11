@@ -10,7 +10,6 @@ pub use status::Status;
 use crate::signal_handling::install_sighup_handler;
 use crate::BackEnd;
 
-#[derive(Default)]
 pub struct TaskMaster {
     pub server:      Server,
     pub backend:     BackEnd,
@@ -20,10 +19,14 @@ pub struct TaskMaster {
 }
 
 impl TaskMaster {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> TaskMaster {
         TaskMaster {
-            server: Server::new(DAEMON_SOCKET_PATH),
-            ..TaskMaster::default()
+            server:          Server::new(DAEMON_SOCKET_PATH),
+            backend:         BackEnd::default(),
+            status:          Status::default(),
+            factory:         RequestFactory::default(),
+            config_filename: String::default(),
         }
     }
 

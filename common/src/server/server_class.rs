@@ -39,12 +39,21 @@ impl Server {
             Ok(val) => val,
             Err(e) => panic!("{e:?}"),
         };
+        let mut resourcelimit = libc::rlimit {
+            rlim_cur: 0,
+            rlim_max: 0,
+        };
+        syscall!(getrlimit(libc::RLIMIT_NOFILE, &mut resourcelimit)).unwrap();
+
         Server {
             socket,
-            ..Server::default()
+            events: Vec::with_capacity(resourcelimit.rlim_cur as usize),
+            pollfd: RawFd::default(),
+            clients: HashMap::new(),
+            key: SERVER_KEY,
+            ready: false,
         }
     }
-
     pub fn build(&mut self) -> io::Result<()> {
         self.pollfd = match self.create_epoll() {
             Ok(fd) => fd,
@@ -202,25 +211,5 @@ impl Server {
             error!("server: invalid key {key}");
         }
         Ok(())
-    }
-}
-
-impl Default for Server {
-    fn default() -> Server {
-        if Path::new("PLACEHOLDER").exists() {
-            std::fs::remove_file("PLACEHOLDER").unwrap();
-        }
-        let socket = match UnixListener::bind("PLACEHOLDER") {
-            Ok(val) => val,
-            Err(e) => panic!("{e:?}"),
-        };
-        Server {
-            socket,
-            events: Vec::with_capacity(1024),
-            pollfd: 0,
-            ready: false,
-            key: SERVER_KEY,
-            clients: HashMap::new(),
-        }
     }
 }
