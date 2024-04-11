@@ -13,6 +13,7 @@ use libc::{
     EPOLL_CTL_ADD,
     EPOLL_CTL_DEL,
     EPOLL_CTL_MOD,
+    STDIN_FILENO,
 };
 use logger::{debug, error, info, warning};
 
@@ -38,12 +39,21 @@ impl Server {
             Ok(val) => val,
             Err(e) => panic!("{e:?}"),
         };
+        let mut resourcelimit = libc::rlimit {
+            rlim_cur: 0,
+            rlim_max: 0,
+        };
+        syscall!(getrlimit(libc::RLIMIT_NOFILE, &mut resourcelimit)).unwrap();
+
         Server {
             socket,
-            ..Server::default()
+            events: Vec::with_capacity(resourcelimit.rlim_cur as usize),
+            pollfd: RawFd::default(),
+            clients: HashMap::new(),
+            key: SERVER_KEY,
+            ready: false,
         }
     }
-
     pub fn build(&mut self) -> io::Result<()> {
         self.pollfd = match self.create_epoll() {
             Ok(fd) => fd,
@@ -102,19 +112,28 @@ impl Server {
     }
 
     pub fn add_interest(&self, key: Key, mut event: epoll_event) -> io::Result<()> {
-        let fd = self.clients.get(&key).unwrap().as_raw_fd();
+        let mut fd: i32 = 0;
+        if key != STDIN_FILENO as Key {
+            fd = self.clients.get(&key).unwrap().as_raw_fd();
+        }
         syscall!(epoll_ctl(self.pollfd, EPOLL_CTL_ADD, fd, &mut event))?;
         Ok(())
     }
 
     pub fn modify_interest(&self, key: Key, mut event: epoll_event) -> io::Result<()> {
-        let fd = self.clients.get(&key).unwrap().as_raw_fd();
+        let mut fd: i32 = 0;
+        if key != STDIN_FILENO as Key {
+            fd = self.clients.get(&key).unwrap().as_raw_fd();
+        }
         syscall!(epoll_ctl(self.pollfd, EPOLL_CTL_MOD, fd, &mut event))?;
         Ok(())
     }
 
     pub fn remove_interest(&self, key: Key) -> io::Result<()> {
-        let fd = self.clients.get(&key).unwrap().as_raw_fd();
+        let mut fd: i32 = 0;
+        if key != STDIN_FILENO as Key {
+            fd = self.clients.get(&key).unwrap().as_raw_fd();
+        }
         syscall!(epoll_ctl(self.pollfd, EPOLL_CTL_DEL, fd, std::ptr::null_mut()))?;
         Ok(())
     }
@@ -123,6 +142,13 @@ impl Server {
         epoll_event {
             events: EPOLLIN as u32,
             u64:    SERVER_KEY,
+        }
+    }
+
+    pub fn read_write_event(key: Key) -> epoll_event {
+        epoll_event {
+            events: (EPOLLOUT | EPOLLIN) as u32,
+            u64:    key,
         }
     }
 
@@ -140,17 +166,31 @@ impl Server {
         }
     }
 
-    pub fn recv(&mut self, key: Key) -> io::Result<String> {
+    fn recv_stdin(&self) -> io::Result<String> {
         let mut buf = String::new();
+        std::io::stdin().read_line(&mut buf)?;
+        let stdin = STDIN_FILENO as Key;
+        debug!("{:13}: |{}|", "STDIN", buf.escape_default());
+        self.modify_interest(stdin, Server::read_event(stdin))?;
+        Ok(buf)
+    }
+
+    pub fn recv(&mut self, key: Key) -> io::Result<String> {
+        if key == STDIN_FILENO as Key {
+            return self.recv_stdin();
+        }
+
+        let mut buf = [0_u8; 1024];
         if let Some(client) = self.clients.get_mut(&key) {
-            match client.read_to_string(&mut buf) {
+            match client.read(&mut buf) {
                 Ok(bytes) => {
                     if bytes == 0 {
                         warning!("#{key} DROPPED BY CLIENT (READ 0 BYTES)");
                         return Err(io::Error::from_raw_os_error(32));
                     }
-                    debug!("#{key} RECEIVED: |{}|", buf.escape_default());
-                    Ok(buf)
+                    let res = String::from_utf8(buf[0..bytes].into()).unwrap();
+                    debug!("#{key} RECEIVED: |{}|", res.escape_default());
+                    Ok(res)
                 }
                 Err(e) => {
                     self.remove_interest(key)?;
@@ -167,30 +207,9 @@ impl Server {
     pub fn send(&mut self, key: Key, msg: &String) -> io::Result<()> {
         if let Some(client) = self.clients.get_mut(&key) {
             client.write_all(msg.as_bytes())?;
-            client.shutdown(std::net::Shutdown::Both)?;
         } else {
             error!("server: invalid key {key}");
         }
         Ok(())
-    }
-}
-
-impl Default for Server {
-    fn default() -> Server {
-        if Path::new("PLACEHOLDER").exists() {
-            std::fs::remove_file("PLACEHOLDER").unwrap();
-        }
-        let socket = match UnixListener::bind("PLACEHOLDER") {
-            Ok(val) => val,
-            Err(e) => panic!("{e:?}"),
-        };
-        Server {
-            socket,
-            events: Vec::with_capacity(1024),
-            pollfd: 0,
-            ready: false,
-            key: SERVER_KEY,
-            clients: HashMap::new(),
-        }
     }
 }

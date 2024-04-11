@@ -1,31 +1,15 @@
 use std::error::Error;
-use std::io::{Read, Write};
-use std::net::Shutdown;
-use std::os::unix::net::UnixStream;
 
-use logger::{debug, error, info};
+use ctl::Client;
+// use common::DFL_SERVER_SOCKET_PATH;
+// use ctl::client::client_class::Client;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut buf = String::new();
-    buf.reserve(500);
-    info!("Ready for input");
+    println!("hello client");
+    let mut client = Client::new();
+    client.build()?;
     loop {
-        let mut stream = UnixStream::connect(common::DFL_SERVER_SOCKET_PATH).unwrap();
-        match std::io::stdin().read_line(&mut buf) {
-            Ok(_) => (),
-            Err(e) => error!("stdin: {e}"),
-        };
-        let mut stuff = buf.clone();
-        stuff.pop();
-        debug!("{:10}: {}", "user", stuff);
-        stream
-            .write_all(buf.as_bytes())
-            .unwrap_or_else(|e| error!("client error: {e:?}"));
-        buf.clear();
-        stream.shutdown(Shutdown::Write).unwrap();
-        stream.read_to_string(&mut buf).unwrap();
-        stream.shutdown(Shutdown::Read).unwrap();
-        debug!("{:10}: {buf}", "server");
-        buf.clear();
+        client.serve_routine()?;
     }
+    // Ok(())
 }

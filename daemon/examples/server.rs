@@ -11,7 +11,7 @@ use logger::{debug, info, warning};
 
 // cargo run -p daemon --example server
 fn main() {
-    let socket = Path::new(common::DFL_SERVER_SOCKET_PATH);
+    let socket = Path::new(common::DAEMON_SOCKET_PATH);
     if socket.exists() {
         std::fs::remove_file(socket).unwrap();
         info!("previous socket removed");

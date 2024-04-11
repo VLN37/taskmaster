@@ -3,13 +3,13 @@ use std::fs::File;
 use std::io::{self, Error};
 
 use common::server::{Key, RequestFactory, Server, SERVER_KEY};
+use common::DAEMON_SOCKET_PATH;
 use logger::{debug, error, info};
 pub use status::Status;
 
 use crate::signal_handling::{install_sigchld_handler, install_sighup_handler};
-use crate::{defs, BackEnd};
+use crate::BackEnd;
 
-#[derive(Default)]
 pub struct TaskMaster {
     pub server:      Server,
     pub backend:     BackEnd,
@@ -19,10 +19,14 @@ pub struct TaskMaster {
 }
 
 impl TaskMaster {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> TaskMaster {
         TaskMaster {
-            server: Server::new(defs::DFL_SOCKET_NAME),
-            ..TaskMaster::default()
+            server:          Server::new(DAEMON_SOCKET_PATH),
+            backend:         BackEnd::default(),
+            status:          Status::default(),
+            factory:         RequestFactory::default(),
+            config_filename: String::default(),
         }
     }
 
@@ -67,7 +71,7 @@ impl TaskMaster {
             let key: Key = ev.u64;
             if key == SERVER_KEY {
                 if self.server.accept().is_ok() {
-                    info!("#{} ACCEPTED", self.server.key);
+                    info!("#{} CONNECTED", self.server.key);
                 }
                 continue;
             }
@@ -78,7 +82,7 @@ impl TaskMaster {
                 }
             } else if (ev.events & libc::EPOLLOUT as u32) != 0 {
                 self.respond(key)?;
-                info!("#{key} RESPONSE SENT");
+                info!("#{key} SENT");
             } else {
                 let ev = ev.events;
                 error!("Unexpected event: {}", ev);
@@ -91,7 +95,7 @@ impl TaskMaster {
         match self.server.recv(key) {
             Ok(mut msg) => {
                 self.factory.insert(key, &mut msg);
-                info!("#{key} REQUEST READ");
+                info!("#{key} READ");
                 if let Some(request) = self.factory.parse(key) {
                     self.backend.clients.insert(key, request);
                     self.server.modify_interest(key, Server::write_event(key))?;
@@ -107,9 +111,8 @@ impl TaskMaster {
     pub fn respond(&mut self, key: Key) -> io::Result<()> {
         let msg = self.backend.get_response_for(key);
         self.server.send(key, &msg)?;
-        // should close the request when Response object is finished
-        // we will know if the backend is done with it, now we don't
-        info!("#{key} RESPONSE SENT");
+        // the connection is kept alive until dropped by client
+        self.server.modify_interest(key, Server::read_event(key))?;
         Ok(())
     }
 }
