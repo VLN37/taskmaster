@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
-use common::server::{Key, Request};
+use common::server::Key;
 use logger::{debug, info};
 
 mod client;
+mod commands;
 mod print_functions;
 mod process;
 mod program;
@@ -13,6 +14,7 @@ use self::print_functions::{print_processes, print_programs};
 use self::process::Process;
 use self::program::Program;
 use crate::config::{ConfigError, ProgramConfig};
+use crate::taskmaster::Request;
 use crate::TaskMasterConfig;
 
 #[derive(Default)]

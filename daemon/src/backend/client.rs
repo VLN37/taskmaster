@@ -1,4 +1,4 @@
-use common::server::Request;
+use crate::taskmaster::Request;
 
 #[derive(Debug, Default)]
 pub enum ClientState {

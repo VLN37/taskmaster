@@ -1,10 +1,15 @@
+mod request;
+mod request_factory;
+
 pub mod status;
 use std::fs::File;
 use std::io::{self, Error};
 
-use common::server::{Key, RequestFactory, Server, SERVER_KEY};
+use common::server::{Key, Server, SERVER_KEY};
 use common::DAEMON_SOCKET_PATH;
 use logger::{debug, error, info};
+pub use request::Request;
+pub use request_factory::RequestFactory;
 pub use status::Status;
 
 use crate::signal_handling::{install_sigchld_handler, install_sighup_handler};
