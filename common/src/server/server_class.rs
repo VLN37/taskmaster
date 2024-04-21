@@ -71,7 +71,7 @@ impl Server {
                 self.key += 1;
                 stream.set_nonblocking(true)?;
                 self.clients.insert(self.key, stream);
-                self.add_interest(self.key, Self::read_event(self.key))?;
+                self.add_interest(Self::read_event(self.key))?;
                 Ok(self.key)
             }
             Err(e) => {
@@ -111,8 +111,9 @@ impl Server {
         Ok(())
     }
 
-    pub fn add_interest(&self, key: Key, mut event: epoll_event) -> io::Result<()> {
+    pub fn add_interest(&self, mut event: epoll_event) -> io::Result<()> {
         let mut fd: i32 = 0;
+        let key = event.u64 as Key;
         if key != STDIN_FILENO as Key {
             fd = self.clients.get(&key).unwrap().as_raw_fd();
         }
@@ -120,8 +121,9 @@ impl Server {
         Ok(())
     }
 
-    pub fn modify_interest(&self, key: Key, mut event: epoll_event) -> io::Result<()> {
+    pub fn modify_interest(&self, mut event: epoll_event) -> io::Result<()> {
         let mut fd: i32 = 0;
+        let key = event.u64 as Key;
         if key != STDIN_FILENO as Key {
             fd = self.clients.get(&key).unwrap().as_raw_fd();
         }
@@ -166,12 +168,26 @@ impl Server {
         }
     }
 
+    pub fn fixed_write(key: Key) -> epoll_event {
+        epoll_event {
+            events: EPOLLOUT as u32,
+            u64:    key,
+        }
+    }
+
+    pub fn fixed_read(key: Key) -> epoll_event {
+        epoll_event {
+            events: EPOLLIN as u32,
+            u64:    key,
+        }
+    }
+
     fn recv_stdin(&self) -> io::Result<String> {
         let mut buf = String::new();
         std::io::stdin().read_line(&mut buf)?;
         let stdin = STDIN_FILENO as Key;
         debug!("{:13}: |{}|", "STDIN", buf.escape_default());
-        self.modify_interest(stdin, Server::read_event(stdin))?;
+        self.modify_interest(Server::read_event(stdin))?;
         Ok(buf)
     }
 

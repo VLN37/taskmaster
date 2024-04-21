@@ -7,6 +7,8 @@ use common::{CTL_SOCKET_PATH, DAEMON_SOCKET_PATH};
 use libc::STDIN_FILENO;
 use logger::{debug, info};
 
+const BACK: Key = 1;
+
 pub struct Client {
     pub server:  Server,
     pub backend: UnixStream,
@@ -26,18 +28,18 @@ impl Client {
         self.server.build()?;
 
         let stdin = STDIN_FILENO as Key;
-        self.server.add_interest(stdin, Server::read_event(stdin))?;
+        self.server.add_interest(Server::read_event(stdin))?;
 
         self.backend.set_nonblocking(true)?;
         self.server.clients.insert(1, self.backend.try_clone()?);
-        self.server.add_interest(1, Server::write_event(1))?;
+        self.server.add_interest(Server::write_event(BACK))?;
         Ok(())
     }
 
     pub fn query(&mut self) -> io::Result<()> {
         let query = self.queries.pop_front().unwrap();
         self.backend.write_all(query.as_bytes())?;
-        self.server.modify_interest(1, Server::read_event(1))?;
+        self.server.modify_interest(Server::read_event(BACK))?;
         Ok(())
     }
 
@@ -58,7 +60,7 @@ impl Client {
                         continue;
                     }
                     self.queries.push_back(msg);
-                    self.server.modify_interest(1, Server::write_event(1))?;
+                    self.server.modify_interest(Server::write_event(BACK))?;
                     debug!("current queries: {:?}", &self.queries)
                 } else {
                     println!("backend: {msg}");

@@ -70,7 +70,6 @@ impl TaskMaster {
     pub fn serve_routine(&mut self) -> io::Result<()> {
         // info!("#{} AWAITING", self.server.key);
         self.server.epoll_wait()?;
-        self.backend.update_processes_status();
         // self.backend.dump_processes_status();
         for ev in self.server.get_events() {
             let key: Key = ev.u64;
@@ -103,9 +102,9 @@ impl TaskMaster {
                 info!("#{key} READ");
                 if let Some(request) = self.factory.parse(key) {
                     self.backend.insert(key, request);
-                    self.server.modify_interest(key, Server::write_event(key))?;
+                    self.server.modify_interest(Server::write_event(key))?;
                 } else {
-                    self.server.modify_interest(key, Server::read_event(key))?;
+                    self.server.modify_interest(Server::read_event(key))?;
                 }
                 Ok(())
             }
@@ -117,7 +116,7 @@ impl TaskMaster {
         let msg = self.backend.get_response_for(key);
         self.server.send(key, &msg)?;
         // the connection is kept alive until dropped by client
-        self.server.modify_interest(key, Server::read_event(key))?;
+        self.server.modify_interest(Server::read_event(key))?;
         Ok(())
     }
 }
