@@ -10,6 +10,7 @@ mod process;
 mod program;
 
 use self::client::Client;
+pub use self::commands::DaemonCommand;
 use self::print_functions::{print_processes, print_programs};
 use self::process::Process;
 use self::program::Program;

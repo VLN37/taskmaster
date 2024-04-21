@@ -1,3 +1,5 @@
+use crate::backend::DaemonCommand;
+
 #[derive(Debug)]
 pub struct Request {
     pub command:   String,
@@ -6,12 +8,16 @@ pub struct Request {
     pub finished:  bool,
 }
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub enum RequestStatus {
     #[default]
     Pending,
     Valid,
     Invalid,
+}
+
+impl From<RequestStatus> for bool {
+    fn from(value: RequestStatus) -> bool { value == RequestStatus::Valid }
 }
 
 impl Request {
@@ -26,14 +32,11 @@ impl Request {
     }
 
     fn validate(&mut self) -> bool {
-        match self.command.to_uppercase().as_str() {
-            "ATTACH" => self.status = RequestStatus::Valid,
-            "STATUS" => self.status = RequestStatus::Valid,
-            "LOG" => self.status = RequestStatus::Valid,
-            "HEAD" => self.status = RequestStatus::Valid,
-            _ => self.status = RequestStatus::Invalid,
-        };
-        self.status == RequestStatus::Valid
+        match DaemonCommand::parse(&self.command) {
+            Ok(_) => self.status = RequestStatus::Valid,
+            Err(_) => self.status = RequestStatus::Invalid,
+        }
+        self.status.into()
     }
 }
 
