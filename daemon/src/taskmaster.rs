@@ -97,7 +97,7 @@ impl TaskMaster {
                 self.factory.insert(key, &mut msg);
                 info!("#{key} READ");
                 if let Some(request) = self.factory.parse(key) {
-                    self.backend.clients.insert(key, request);
+                    self.backend.insert(key, request);
                     self.server.modify_interest(key, Server::write_event(key))?;
                 } else {
                     self.server.modify_interest(key, Server::read_event(key))?;

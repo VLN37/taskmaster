@@ -3,9 +3,12 @@ use std::collections::HashMap;
 use common::server::{Key, Request};
 use logger::{debug, info};
 
+mod client;
 mod print_functions;
 mod process;
 mod program;
+
+use self::client::Client;
 use self::print_functions::{print_processes, print_programs};
 use self::process::Process;
 use self::program::Program;
@@ -16,7 +19,7 @@ use crate::TaskMasterConfig;
 pub struct BackEnd {
     pub config:   TaskMasterConfig,
     pub programs: HashMap<String, Program>,
-    pub clients:  HashMap<Key, Request>,
+    pub clients:  HashMap<Key, Client>,
 }
 
 impl BackEnd {
@@ -50,6 +53,16 @@ impl BackEnd {
         });
 
         self.dump_processes_status();
+    }
+
+    pub fn insert(&mut self, key: Key, request: Request) {
+        if let Some(client) = self.clients.get_mut(&key) {
+            client.requests.push(request);
+        } else {
+            let mut client = Client::new();
+            client.requests.push(request);
+            self.clients.insert(key, client);
+        }
     }
 
     fn start_procesess(programs: &mut HashMap<String, Program>) {
