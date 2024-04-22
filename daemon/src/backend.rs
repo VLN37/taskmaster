@@ -9,7 +9,7 @@ mod print_functions;
 mod process;
 mod program;
 
-use self::client::Client;
+use self::client::{Client, ClientState};
 pub use self::commands::DaemonCommand;
 use self::print_functions::{print_processes, print_programs};
 use self::process::Process;
@@ -33,7 +33,15 @@ impl BackEnd {
         }
     }
 
-    pub fn get_response_for(&self, key: Key) -> String { format!("Response for {key}") }
+    pub fn get_response_for(&mut self, key: Key) -> String {
+        let client = self.clients.get_mut(&key).unwrap();
+        let request = client.requests.pop_front().unwrap();
+        let command = request.command;
+        match &client.state {
+            ClientState::Attached(program) => format!("fetched {program} descriptor"),
+            ClientState::Unattached => format!("response for command {command}"),
+        }
+    }
 
     pub fn start(&mut self) {
         print_programs("initial programs", &self.config.programs);
@@ -60,10 +68,10 @@ impl BackEnd {
 
     pub fn insert(&mut self, key: Key, request: Request) {
         if let Some(client) = self.clients.get_mut(&key) {
-            client.requests.push(request);
+            client.requests.push_back(request);
         } else {
             let mut client = Client::new();
-            client.requests.push(request);
+            client.requests.push_back(request);
             self.clients.insert(key, client);
         }
     }

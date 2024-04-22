@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use crate::taskmaster::Request;
 
 #[derive(Debug, Default)]
@@ -10,7 +12,7 @@ pub enum ClientState {
 #[derive(Debug, Default)]
 pub struct Client {
     pub state:    ClientState,
-    pub requests: Vec<Request>,
+    pub requests: VecDeque<Request>,
 }
 
 impl Client {
