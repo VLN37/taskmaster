@@ -4,13 +4,11 @@ use common::server::Key;
 use logger::{debug, info};
 
 mod client;
-mod commands;
 mod print_functions;
 mod process;
 mod program;
 
 use self::client::{Client, ClientState};
-pub use self::commands::DaemonCommand;
 use self::print_functions::{print_processes, print_programs};
 use self::process::Process;
 use self::program::Program;

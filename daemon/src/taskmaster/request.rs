@@ -1,4 +1,4 @@
-use crate::backend::DaemonCommand;
+use common::Cmd;
 
 #[derive(Debug)]
 pub struct Request {
@@ -32,7 +32,7 @@ impl Request {
     }
 
     fn validate(&mut self) -> bool {
-        match DaemonCommand::parse(&self.command) {
+        match Cmd::parse(&self.command) {
             Ok(_) => self.status = RequestStatus::Valid,
             Err(_) => self.status = RequestStatus::Invalid,
         }
