@@ -1,3 +1,5 @@
+#![feature(raw_os_error_ty)]
+
 mod cmd;
 pub mod macros;
 pub mod server;

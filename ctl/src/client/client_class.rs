@@ -1,8 +1,8 @@
 use std::collections::VecDeque;
-use std::io::{self, Write};
+use std::io::Write;
 use std::os::unix::net::UnixStream;
 
-use common::server::{Key, Server, SERVER_KEY};
+use common::server::{Key, Server, ServerError, SERVER_KEY};
 use common::{CTL_SOCKET_PATH, DAEMON_SOCKET_PATH};
 use libc::STDIN_FILENO;
 use logger::{debug, info};
@@ -24,7 +24,7 @@ impl Client {
         }
     }
 
-    pub fn build(&mut self) -> io::Result<()> {
+    pub fn build(&mut self) -> Result<(), ServerError> {
         self.server.build()?;
 
         let stdin = STDIN_FILENO as Key;
@@ -36,14 +36,14 @@ impl Client {
         Ok(())
     }
 
-    pub fn query(&mut self) -> io::Result<()> {
+    pub fn query(&mut self) -> Result<(), ServerError> {
         let query = self.queries.pop_front().unwrap();
         self.backend.write_all(query.as_bytes())?;
         self.server.modify_interest(Server::read_event(BACK))?;
         Ok(())
     }
 
-    pub fn serve_routine(&mut self) -> io::Result<()> {
+    pub fn serve_routine(&mut self) -> Result<(), ServerError> {
         self.server.epoll_wait()?;
         for ev in self.server.get_events() {
             let key: Key = ev.u64;

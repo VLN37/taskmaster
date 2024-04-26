@@ -54,7 +54,8 @@ impl Server {
             ready: false,
         }
     }
-    pub fn build(&mut self) -> io::Result<()> {
+
+    pub fn build(&mut self) -> super::Result<()> {
         self.pollfd = match self.create_epoll() {
             Ok(fd) => fd,
             Err(err) => panic!("panic {err}"),
@@ -65,7 +66,7 @@ impl Server {
         Ok(())
     }
 
-    pub fn accept(&mut self) -> io::Result<Key> {
+    pub fn accept(&mut self) -> super::Result<Key> {
         match self.socket.accept() {
             Ok((stream, _addr)) => {
                 self.key += 1;
@@ -76,14 +77,14 @@ impl Server {
             }
             Err(e) => {
                 error!("{e:?}");
-                Err(e)
+                Err(e.into())
             }
         }
     }
 
     pub fn get_events(&self) -> Vec<epoll_event> { self.events.clone() }
 
-    pub fn create_epoll(&mut self) -> io::Result<RawFd> {
+    pub fn create_epoll(&mut self) -> super::Result<RawFd> {
         let fd = syscall!(epoll_create1(0))?;
         if let Ok(flags) = syscall!(fcntl(fd, libc::F_GETFD)) {
             syscall!(fcntl(fd, libc::F_SETFD, flags | libc::FD_CLOEXEC))?;
@@ -91,7 +92,7 @@ impl Server {
         Ok(fd)
     }
 
-    pub fn epoll_wait(&mut self) -> io::Result<()> {
+    pub fn epoll_wait(&mut self) -> super::Result<()> {
         self.events.clear();
         let res = match syscall!(epoll_wait(
             self.pollfd,
@@ -111,7 +112,7 @@ impl Server {
         Ok(())
     }
 
-    pub fn add_interest(&self, mut event: epoll_event) -> io::Result<()> {
+    pub fn add_interest(&self, mut event: epoll_event) -> super::Result<()> {
         let mut fd: i32 = 0;
         let key = event.u64 as Key;
         if key != STDIN_FILENO as Key {
@@ -121,7 +122,7 @@ impl Server {
         Ok(())
     }
 
-    pub fn modify_interest(&self, mut event: epoll_event) -> io::Result<()> {
+    pub fn modify_interest(&self, mut event: epoll_event) -> super::Result<()> {
         let mut fd: i32 = 0;
         let key = event.u64 as Key;
         if key != STDIN_FILENO as Key {
@@ -131,7 +132,7 @@ impl Server {
         Ok(())
     }
 
-    pub fn remove_interest(&self, key: Key) -> io::Result<()> {
+    pub fn remove_interest(&self, key: Key) -> super::Result<()> {
         let mut fd: i32 = 0;
         if key != STDIN_FILENO as Key {
             fd = self.clients.get(&key).unwrap().as_raw_fd();
@@ -155,6 +156,7 @@ impl Server {
     }
 
     pub fn read_event(key: Key) -> epoll_event {
+        println!("minha string {key}");
         epoll_event {
             events: (EPOLLONESHOT | EPOLLIN) as u32,
             u64:    key,
@@ -182,7 +184,7 @@ impl Server {
         }
     }
 
-    fn recv_stdin(&self) -> io::Result<String> {
+    fn recv_stdin(&self) -> super::Result<String> {
         let mut buf = String::new();
         std::io::stdin().read_line(&mut buf)?;
         let stdin = STDIN_FILENO as Key;
@@ -191,7 +193,7 @@ impl Server {
         Ok(buf)
     }
 
-    pub fn recv(&mut self, key: Key) -> io::Result<String> {
+    pub fn recv(&mut self, key: Key) -> super::Result<String> {
         if key == STDIN_FILENO as Key {
             return self.recv_stdin();
         }
@@ -202,7 +204,7 @@ impl Server {
                 Ok(bytes) => {
                     if bytes == 0 {
                         warning!("#{key} DROPPED BY CLIENT (READ 0 BYTES)");
-                        return Err(io::Error::from_raw_os_error(32));
+                        return Err(io::Error::from_raw_os_error(32).into());
                     }
                     let res = String::from_utf8(buf[0..bytes].into()).unwrap();
                     debug!("#{key} RECEIVED: |{}|", res.escape_default());
@@ -212,7 +214,7 @@ impl Server {
                     self.remove_interest(key)?;
                     self.clients.remove(&key);
                     warning!("{key} removed from server due to: {e}");
-                    Err(e)
+                    Err(e.into())
                 }
             }
         } else {
@@ -220,7 +222,7 @@ impl Server {
         }
     }
 
-    pub fn send(&mut self, key: Key, msg: &String) -> io::Result<()> {
+    pub fn send(&mut self, key: Key, msg: &String) -> super::Result<()> {
         if let Some(client) = self.clients.get_mut(&key) {
             client.write_all(msg.as_bytes())?;
         } else {

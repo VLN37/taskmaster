@@ -3,9 +3,9 @@ mod request_factory;
 
 pub mod status;
 use std::fs::File;
-use std::io::{self, Error};
+use std::io;
 
-use common::server::{Key, Server, SERVER_KEY};
+use common::server::{self, Key, Server, ServerError, SERVER_KEY};
 use common::DAEMON_SOCKET_PATH;
 use logger::{debug, error, info};
 pub use request::Request;
@@ -34,8 +34,7 @@ impl TaskMaster {
             config_filename: String::default(),
         }
     }
-
-    pub fn build(&mut self, config_filename: &str) -> io::Result<()> {
+    pub fn build(&mut self, config_filename: &str) -> server::Result<()> {
         self.server.build()?;
         let file = File::open(config_filename)?;
         self.config_filename = config_filename.into();
@@ -67,7 +66,7 @@ impl TaskMaster {
         Ok(())
     }
 
-    pub fn serve_routine(&mut self) -> io::Result<()> {
+    pub fn serve_routine(&mut self) -> Result<(), ServerError> {
         // info!("#{} AWAITING", self.server.key);
         self.server.epoll_wait()?;
         // self.backend.dump_processes_status();
@@ -95,7 +94,7 @@ impl TaskMaster {
         Ok(())
     }
 
-    pub fn receive(&mut self, key: Key) -> io::Result<()> {
+    pub fn receive(&mut self, key: Key) -> Result<(), ServerError> {
         match self.server.recv(key) {
             Ok(mut msg) => {
                 self.factory.insert(key, &mut msg);
@@ -108,11 +107,11 @@ impl TaskMaster {
                 }
                 Ok(())
             }
-            Err(err) => Err(Error::from(err.kind())),
+            Err(err) => Err(err),
         }
     }
 
-    pub fn respond(&mut self, key: Key) -> io::Result<()> {
+    pub fn respond(&mut self, key: Key) -> Result<(), ServerError> {
         let msg = self.backend.get_response_for(key);
         self.server.send(key, &msg)?;
         // the connection is kept alive until dropped by client
