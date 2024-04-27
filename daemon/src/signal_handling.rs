@@ -65,7 +65,7 @@ mod test {
         let mut taskmaster = TaskMaster::new();
         let ptr: *mut Status = &mut taskmaster.status;
         unsafe {
-            install_sighup_handler(move |_sig, _info| {
+            install_sighup_handler(move || {
                 *ptr = Status::Reloading;
             });
 
