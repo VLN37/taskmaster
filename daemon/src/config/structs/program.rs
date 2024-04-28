@@ -7,7 +7,7 @@ use super::{RestartOption, Signal};
 pub struct ProgramConfig {
     pub command:               String,
     pub args:                  Vec<String>,
-    pub processes:             u32,
+    pub processes:             usize,
     pub run_at_startup:        bool,
     pub retry_start_count:     u32,
     pub restart:               RestartOption,

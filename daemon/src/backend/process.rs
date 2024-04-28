@@ -156,7 +156,7 @@ impl Process {
                             self.should_try_again = true;
                         }
                     }
-                    Err(_) => todo!("How could the wait fail?"),
+                    Err(e) => error!("failed waiting: {e}"),
                 }
             }
         }

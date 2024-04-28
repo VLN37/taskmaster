@@ -45,7 +45,7 @@ impl BackEnd {
         print_programs("initial programs", &self.config.programs);
         self.programs = Self::create_programs(&self.config.programs);
 
-        Self::start_procesess(&mut self.programs);
+        Self::create_startup_processes(&mut self.programs);
 
         print_processes(&self.programs);
     }
@@ -95,6 +95,24 @@ impl BackEnd {
             .collect()
     }
 
+    fn create_startup_processes(programs: &mut HashMap<String, Program>) {
+        programs
+            .iter_mut()
+            .filter(|(_, program)| program.config.run_at_startup)
+            .for_each(|(_, program)| {
+                program.processes =
+                    Self::create_processes(program, program.config.processes);
+
+                program.update_process_status();
+            });
+    }
+
+    fn create_processes(program: &mut Program, count: usize) -> Vec<Process> {
+        (0..count)
+            .map(|_| Process::start(&mut program.command))
+            .collect()
+    }
+
     pub fn update(&mut self, new_config: TaskMasterConfig) -> Result<(), ConfigError> {
         if self.config != new_config {
             info!("Updating config");
@@ -115,8 +133,30 @@ impl BackEnd {
         self.config = new_config;
     }
 
+    fn find_child_by_pid(&self, pid: u32) -> Option<&Process> {
+        self.programs.iter().find_map(|(_, program)| {
+            program
+                .processes
+                .iter()
+                .find(|p| p.child.as_ref().is_ok_and(|child| child.id() == pid))
+        })
+    }
+
     pub fn dump_processes_status(&self) {
         debug!("{}", print_processes(&self.programs));
+    }
+
+    fn get_program_by_pid(&self, pid: u32) -> &Program {
+        self.programs
+            .iter()
+            .find(|(_, program)| {
+                program
+                    .processes
+                    .iter()
+                    .any(|p| p.child.as_ref().is_ok_and(|child| child.id() == pid))
+            })
+            .expect("Program not found")
+            .1
     }
 }
 
