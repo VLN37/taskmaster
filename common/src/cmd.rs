@@ -27,7 +27,7 @@ pub struct CmdError {
 }
 
 impl std::error::Error for CmdError {}
-pub type Result<TMCommand> = result::Result<TMCommand, CmdError>;
+pub type Result<Cmd> = result::Result<Cmd, CmdError>;
 
 impl fmt::Display for CmdError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

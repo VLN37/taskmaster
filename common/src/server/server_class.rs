@@ -156,7 +156,6 @@ impl Server {
     }
 
     pub fn read_event(key: Key) -> epoll_event {
-        println!("minha string {key}");
         epoll_event {
             events: (EPOLLONESHOT | EPOLLIN) as u32,
             u64:    key,

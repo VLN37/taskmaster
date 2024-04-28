@@ -5,7 +5,7 @@ pub mod status;
 use std::fs::File;
 use std::io;
 
-use common::server::{self, Key, Server, ServerError, SERVER_KEY};
+use common::server::{Key, Server, ServerError, SERVER_KEY};
 use common::DAEMON_SOCKET_PATH;
 use logger::{debug, error, info};
 pub use request::Request;
@@ -34,7 +34,8 @@ impl TaskMaster {
             config_filename: String::default(),
         }
     }
-    pub fn build(&mut self, config_filename: &str) -> server::Result<()> {
+
+    pub fn build(&mut self, config_filename: &str) -> Result<(), ServerError> {
         self.server.build()?;
         let file = File::open(config_filename)?;
         self.config_filename = config_filename.into();
@@ -95,20 +96,15 @@ impl TaskMaster {
     }
 
     pub fn receive(&mut self, key: Key) -> Result<(), ServerError> {
-        match self.server.recv(key) {
-            Ok(mut msg) => {
-                self.factory.insert(key, &mut msg);
-                info!("#{key} READ");
-                if let Some(request) = self.factory.parse(key) {
-                    self.backend.insert(key, request);
-                    self.server.modify_interest(Server::write_event(key))?;
-                } else {
-                    self.server.modify_interest(Server::read_event(key))?;
-                }
-                Ok(())
-            }
-            Err(err) => Err(err),
+        let mut msg = self.server.recv(key)?;
+        self.factory.insert(key, &mut msg);
+        if let Some(request) = self.factory.parse(key) {
+            self.backend.insert(key, request);
+            self.server.modify_interest(Server::write_event(key))?;
+        } else {
+            self.server.modify_interest(Server::read_event(key))?;
         }
+        Ok(())
     }
 
     pub fn respond(&mut self, key: Key) -> Result<(), ServerError> {
