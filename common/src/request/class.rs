@@ -1,4 +1,5 @@
 use super::ClientState;
+use crate::server::ServerError;
 use crate::Cmd;
 
 #[derive(Debug)]
@@ -44,19 +45,33 @@ impl Request {
         match self.status {
             RequestStatus::Valid => true,
             RequestStatus::Invalid => false,
-            RequestStatus::Pending => self.validate(),
+            RequestStatus::Pending => self.validate().unwrap_or(false),
         }
     }
 
-    pub fn validate(&mut self) -> bool {
+    pub fn validate(&mut self) -> Result<bool, ServerError> {
+        self.validate_command()?;
+        Ok(true)
+    }
+
+    fn validate_command(&mut self) -> Result<bool, ServerError> {
         match &self.command {
             Cmd::Other(_) => match &self.state {
-                ClientState::Unattached => self.status = RequestStatus::Valid,
-                ClientState::Attached(_) => self.status = RequestStatus::Invalid,
+                ClientState::Attached(_) => {
+                    self.status = RequestStatus::Valid;
+                    Ok(true)
+                }
+                ClientState::Unattached => {
+                    self.status = RequestStatus::Invalid;
+                    let err = format!("Invalid command: {}", self.command);
+                    Err(ServerError::new(&err))
+                }
             },
-            _ => self.status = RequestStatus::Valid,
+            _ => {
+                self.status = RequestStatus::Valid;
+                Ok(true)
+            }
         }
-        self.status.into()
     }
 }
 

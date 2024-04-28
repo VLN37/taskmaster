@@ -2,6 +2,7 @@ use std::collections::VecDeque;
 use std::io::Write;
 use std::os::unix::net::UnixStream;
 
+use common::request::{ClientState, Request};
 use common::server::{Key, Server, ServerError, SERVER_KEY};
 use common::{CTL_SOCKET_PATH, DAEMON_SOCKET_PATH};
 use libc::STDIN_FILENO;
@@ -14,13 +15,6 @@ pub struct Client {
     pub backend: UnixStream,
     pub queries: VecDeque<String>,
     pub state:   ClientState,
-}
-
-#[derive(Debug, Default, Clone, PartialEq)]
-pub enum ClientState {
-    #[default]
-    Unattached,
-    Attached(String),
 }
 
 impl Client {
@@ -45,15 +39,6 @@ impl Client {
         Ok(())
     }
 
-    pub fn query(&mut self) -> Result<(), ServerError> {
-        let query = self.queries.pop_front().unwrap();
-        // let mut request = Request::from(&query);
-        // request.state = self.state.clone();
-        self.backend.write_all(query.as_bytes())?;
-        self.server.modify_interest(Server::read_event(BACK))?;
-        Ok(())
-    }
-
     pub fn serve_routine(&mut self) -> Result<(), ServerError> {
         self.server.epoll_wait()?;
         for ev in self.server.get_events() {
@@ -65,21 +50,41 @@ impl Client {
                 continue;
             }
             if (ev.events & libc::EPOLLIN as u32) != 0 {
-                let msg = self.server.recv(key)?;
-                if key == STDIN_FILENO as Key {
-                    if msg.trim().is_empty() {
-                        continue;
-                    }
-                    self.queries.push_back(msg);
-                    self.server.modify_interest(Server::write_event(BACK))?;
-                    debug!("current queries: {:?}", &self.queries)
-                } else {
-                    println!("backend: {msg}");
-                }
+                self.receive(key)?;
             }
             if (ev.events & libc::EPOLLOUT as u32) != 0 && !self.queries.is_empty() {
                 self.query()?;
             }
+        }
+        Ok(())
+    }
+
+    fn query(&mut self) -> Result<(), ServerError> {
+        if let Some(query) = self.queries.pop_front() {
+            self.backend.write_all(query.as_bytes())?;
+            self.server.modify_interest(Server::read_event(BACK))?;
+        }
+        Ok(())
+    }
+
+    fn receive(&mut self, key: Key) -> Result<(), ServerError> {
+        let msg = self.server.recv(key)?;
+        if msg.trim().is_empty() {
+            return Ok(());
+        }
+        if key == STDIN_FILENO as Key {
+            let mut request = Request::from(&msg);
+            request.state = self.state.clone();
+            let res = request.validate();
+            if res.is_err() {
+                println!("Error: {}", res.unwrap_err());
+            } else {
+                self.queries.push_back(msg);
+                self.server.modify_interest(Server::write_event(BACK))?;
+                debug!("current queries: {:?}", &self.queries)
+            }
+        } else {
+            println!("backend: {msg}");
         }
         Ok(())
     }

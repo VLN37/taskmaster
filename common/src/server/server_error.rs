@@ -9,7 +9,17 @@ pub struct ServerError {
     pub message: String,
 }
 
+impl ServerError {
+    pub fn new(message: &str) -> Self {
+        ServerError {
+            kind:    "Bad Request".into(),
+            message: message.into(),
+        }
+    }
+}
+
 impl std::error::Error for ServerError {}
+
 impl fmt::Display for ServerError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.message)
