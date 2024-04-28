@@ -4,6 +4,7 @@ use common::server::Key;
 use logger::{debug, info};
 
 mod client;
+mod command_actions;
 mod print_functions;
 mod process;
 mod program;
@@ -72,16 +73,6 @@ impl BackEnd {
             client.requests.push_back(request);
             self.clients.insert(key, client);
         }
-    }
-
-    fn start_procesess(programs: &mut HashMap<String, Program>) {
-        programs.iter_mut().for_each(|(_, program)| {
-            program.processes = (0..program.config.processes)
-                .map(|_| Process::start(&mut program.command))
-                .collect();
-
-            program.update_process_status();
-        });
     }
 
     fn create_programs(
@@ -177,7 +168,6 @@ fn get_diff(
 fn has_major_changes(first: &ProgramConfig, second: &ProgramConfig) -> bool {
     first.command != second.command
         || first.args != second.args
-        // || first.status != second.status
         // || first.processes != second.processes
         // || first.run_at_startup != second.run_at_startup
         // || first.retry_start_count != second.retry_start_count
