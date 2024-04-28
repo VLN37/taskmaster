@@ -65,3 +65,38 @@ impl Program {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Program;
+    use crate::config::ProgramConfig;
+
+    #[test]
+    fn test_program() {
+        let mut config = ProgramConfig::new();
+        config.command = String::from("echo");
+        config.args = vec![String::from("test")];
+
+        let mut program = Program::build_from((&String::from("echo"), &config));
+        program.update_process_count();
+        program.update_process_status();
+
+        assert_eq!(program.processes.len(), 1);
+    }
+
+    #[test]
+    fn test_update_process_count() {
+        let mut config = ProgramConfig::new();
+        config.command = String::from("echo");
+        config.args = vec![String::from("test")];
+        let mut program = Program::build_from((&String::from("echo"), &config));
+        program.update_process_count();
+        assert_eq!(program.processes.len(), 1);
+        program.config.processes = 3;
+        program.update_process_count();
+        assert_eq!(program.processes.len(), 3);
+        program.config.processes = 1;
+        program.update_process_count();
+        assert_eq!(program.processes.len(), 1);
+    }
+}
