@@ -1,4 +1,3 @@
-mod request;
 mod request_factory;
 
 pub mod status;
@@ -8,7 +7,6 @@ use std::io;
 use common::server::{Key, Server, ServerError, SERVER_KEY};
 use common::DAEMON_SOCKET_PATH;
 use logger::{debug, error, info};
-pub use request::Request;
 pub use request_factory::RequestFactory;
 pub use status::Status;
 

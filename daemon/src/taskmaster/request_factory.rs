@@ -1,8 +1,9 @@
 use std::collections::{HashMap, VecDeque};
 
+use common::request::Request;
+use common::Cmd;
 use logger::debug;
 
-use super::request::Request;
 use super::Key;
 
 #[derive(Default)]
@@ -28,7 +29,7 @@ impl RequestFactory {
     pub fn build_request(&mut self, request: &str) -> Request {
         let v: Vec<&str> = request.split_whitespace().collect();
         Request {
-            command: v.first().unwrap().to_string(),
+            command: Cmd::parse(v.first().unwrap()).unwrap(),
             arguments: v[1..].iter().map(|x| x.to_string()).collect(),
             ..Default::default()
         }

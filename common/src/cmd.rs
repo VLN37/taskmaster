@@ -1,12 +1,13 @@
 use core::fmt;
 use std::result;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Cmd {
     Log,
     Status,
     Head,
     Attach,
+    Other(String),
 }
 
 impl Cmd {
@@ -16,8 +17,21 @@ impl Cmd {
             "STATUS" => Ok(Cmd::Status),
             "HEAD" => Ok(Cmd::Head),
             "ATTACH" => Ok(Cmd::Attach),
-            _ => Err(CmdError::new(&format!("Invalid command: {input}"))),
+            other => Ok(Cmd::Other(other.into())),
         }
+    }
+}
+
+impl fmt::Display for Cmd {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let cmd = match self {
+            Cmd::Log => "LOG",
+            Cmd::Status => "STATUS",
+            Cmd::Head => "HEAD",
+            Cmd::Attach => "ATTACH",
+            Cmd::Other(cmd) => cmd.as_str(),
+        };
+        write!(f, "{cmd}")
     }
 }
 

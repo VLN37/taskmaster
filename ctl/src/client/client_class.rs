@@ -13,6 +13,14 @@ pub struct Client {
     pub server:  Server,
     pub backend: UnixStream,
     pub queries: VecDeque<String>,
+    pub state:   ClientState,
+}
+
+#[derive(Debug, Default, Clone, PartialEq)]
+pub enum ClientState {
+    #[default]
+    Unattached,
+    Attached(String),
 }
 
 impl Client {
@@ -21,6 +29,7 @@ impl Client {
             server:  Server::new(CTL_SOCKET_PATH),
             backend: UnixStream::connect(DAEMON_SOCKET_PATH).unwrap(),
             queries: VecDeque::new(),
+            state:   ClientState::default(),
         }
     }
 
@@ -38,6 +47,8 @@ impl Client {
 
     pub fn query(&mut self) -> Result<(), ServerError> {
         let query = self.queries.pop_front().unwrap();
+        // let mut request = Request::from(&query);
+        // request.state = self.state.clone();
         self.backend.write_all(query.as_bytes())?;
         self.server.modify_interest(Server::read_event(BACK))?;
         Ok(())
@@ -80,6 +91,7 @@ impl Default for Client {
             server:  Server::new(CTL_SOCKET_PATH),
             backend: UnixStream::connect(DAEMON_SOCKET_PATH).unwrap(),
             queries: VecDeque::new(),
+            state:   ClientState::default(),
         }
     }
 }

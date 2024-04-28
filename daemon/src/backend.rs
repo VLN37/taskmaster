@@ -8,12 +8,13 @@ mod print_functions;
 mod process;
 mod program;
 
+use common::request::Request;
+
 use self::client::{Client, ClientState};
 use self::print_functions::{print_processes, print_programs};
 use self::process::Process;
 use self::program::Program;
 use crate::config::{ConfigError, ProgramConfig};
-use crate::taskmaster::Request;
 use crate::TaskMasterConfig;
 
 #[derive(Default)]

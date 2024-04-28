@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::taskmaster::Request;
+use common::request::Request;
 
 #[derive(Debug, Default)]
 pub enum ClientState {
