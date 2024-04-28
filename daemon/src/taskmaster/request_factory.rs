@@ -1,9 +1,8 @@
 use std::collections::{HashMap, VecDeque};
 
 use common::request::Request;
+use common::server::Key;
 use logger::debug;
-
-use super::Key;
 
 #[derive(Default)]
 pub struct RequestFactory {

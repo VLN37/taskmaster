@@ -1,1 +1,3 @@
-pub mod client_class;
+pub mod class;
+
+pub use class::Client;
