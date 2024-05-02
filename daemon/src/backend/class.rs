@@ -67,6 +67,11 @@ impl BackEnd {
         }
     }
 
+    pub fn is_attached(&self, k: Key) -> bool {
+        let c = self.clients.get(&k).expect("the client to exist");
+        c.state != ClientState::Unattached
+    }
+
     fn start_procesess(programs: &mut HashMap<String, Program>) {
         programs.iter_mut().for_each(|(_, program)| {
             program.processes = (0..program.config.processes)

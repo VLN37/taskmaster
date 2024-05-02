@@ -80,13 +80,21 @@ impl Client {
                 println!("Error: {}", res.unwrap_err());
             } else {
                 self.queries.push_back(msg);
-                self.server.modify_interest(Server::write_event(BACK))?;
-                debug!("current queries: {:?}", &self.queries)
+                self.request_write(BACK)?;
+                debug!("current queries: {:?}", &self.queries);
             }
         } else {
             println!("backend: {msg}");
         }
         Ok(())
+    }
+
+    fn request_write(&mut self, key: Key) -> Result<(), ServerError> {
+        let ev = match &self.state {
+            ClientState::Attached(_) => Server::read_write_event(key),
+            ClientState::Unattached => Server::write_event(key),
+        };
+        self.server.modify_interest(ev)
     }
 }
 

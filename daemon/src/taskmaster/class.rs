@@ -89,23 +89,31 @@ impl TaskMaster {
         Ok(())
     }
 
-    pub fn receive(&mut self, key: Key) -> Result<(), ServerError> {
+    fn receive(&mut self, key: Key) -> Result<(), ServerError> {
         let mut msg = self.server.recv(key)?;
         self.factory.insert(key, &mut msg);
         if let Some(request) = self.factory.parse(key) {
             self.backend.insert(key, request);
             self.server.modify_interest(Server::write_event(key))?;
         } else {
-            self.server.modify_interest(Server::read_event(key))?;
+            self.request_read(key)?;
         }
         Ok(())
     }
 
-    pub fn respond(&mut self, key: Key) -> Result<(), ServerError> {
+    fn request_read(&mut self, key: Key) -> Result<(), ServerError> {
+        let event = match self.backend.is_attached(key) {
+            true => Server::read_write_event(key),
+            false => Server::read_event(key),
+        };
+        self.server.modify_interest(event)
+    }
+
+    fn respond(&mut self, key: Key) -> Result<(), ServerError> {
         let msg = self.backend.get_response_for(key);
         self.server.send(key, &msg)?;
         // the connection is kept alive until dropped by client
-        self.server.modify_interest(Server::read_event(key))?;
+        self.request_read(key)?;
         Ok(())
     }
 }
