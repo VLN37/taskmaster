@@ -29,11 +29,13 @@ impl RequestFactory {
         debug!("Factory:  current request - {vec:?}");
         if vec.front().unwrap().contains('\n') {
             debug!("Factory: request is complete");
-            let request = vec.pop_front().unwrap();
+            let raw = vec.pop_front().unwrap();
             if vec.is_empty() {
                 self.clients.remove(&k);
             }
-            return Some(Request::from(&request));
+            let mut request = Request::from(&raw);
+            request.client_key = k;
+            return Some(request);
         }
         None
     }

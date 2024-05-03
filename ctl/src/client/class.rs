@@ -74,6 +74,7 @@ impl Client {
         }
         if key == STDIN_FILENO as Key {
             let mut request = Request::from(&msg);
+            request.client_key = key;
             request.state = self.state.clone();
             let res = request.validate();
             if res.is_err() {

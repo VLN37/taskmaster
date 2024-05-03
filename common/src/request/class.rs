@@ -1,14 +1,15 @@
 use super::ClientState;
-use crate::server::ServerError;
+use crate::server::{Key, ServerError};
 use crate::Cmd;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Request {
-    pub command:   Cmd,
-    pub arguments: Vec<String>,
-    pub status:    RequestStatus,
-    pub finished:  bool,
-    pub state:     ClientState,
+    pub command:    Cmd,
+    pub arguments:  Vec<String>,
+    pub status:     RequestStatus,
+    pub finished:   bool,
+    pub state:      ClientState,
+    pub client_key: Key,
 }
 
 #[derive(Default, Clone, Copy, Debug, PartialEq)]
@@ -78,11 +79,12 @@ impl Request {
 impl Default for Request {
     fn default() -> Self {
         Request {
-            command:   Cmd::Other(String::new()),
-            arguments: Vec::new(),
-            status:    RequestStatus::Pending,
-            finished:  false,
-            state:     ClientState::default(),
+            command:    Cmd::Other(String::new()),
+            arguments:  Vec::new(),
+            status:     RequestStatus::Pending,
+            finished:   false,
+            state:      ClientState::default(),
+            client_key: Key::default(),
         }
     }
 }
