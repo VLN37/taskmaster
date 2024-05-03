@@ -4,7 +4,7 @@ use std::os::unix::net::UnixStream;
 
 use common::request::{ClientState, Request};
 use common::server::{Key, Server, ServerError, SERVER_KEY};
-use common::{CTL_SOCKET_PATH, DAEMON_SOCKET_PATH};
+use common::{Cmd, CTL_SOCKET_PATH, DAEMON_SOCKET_PATH};
 use libc::STDIN_FILENO;
 use logger::{debug, info};
 
@@ -76,6 +76,13 @@ impl Client {
             let mut request = Request::from(&msg);
             request.client_key = key;
             request.state = self.state.clone();
+            if request.state != ClientState::Unattached {
+                request.command = Cmd::Other(request.command.into());
+            }
+            debug!(
+                "{}\nself state: {:?}\nrequest state: {:?}\ncommand: {}",
+                "PRE-REQUEST_VALIDATION", self.state, request.state, request.command,
+            );
             let res = request.validate();
             if res.is_err() {
                 println!("Error: {}", res.unwrap_err());
@@ -86,6 +93,10 @@ impl Client {
             }
         } else {
             println!("backend: {msg}");
+            if msg.contains("Attach successful!") {
+                println!("frontend attached");
+                self.state = ClientState::Attached("backend knows".into());
+            }
         }
         Ok(())
     }

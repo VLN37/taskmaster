@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use common::request::Request;
 use common::server::Key;
+use common::{Cmd, CmdHandler, Response};
 use logger::{debug, info};
 
 use super::print_functions::{print_processes, print_programs};
@@ -24,14 +25,28 @@ impl BackEnd {
         }
     }
 
-    pub fn get_response_for(&mut self, key: Key) -> String {
+    pub fn get_response_for(&mut self, key: Key) -> Option<Response> {
         let client = self.clients.get_mut(&key).unwrap();
-        let request = client.requests.pop_front().unwrap();
-        let command = request.command;
-        match &client.state {
-            ClientState::Attached(program) => format!("fetched {program} descriptor"),
-            ClientState::Unattached => format!("response for command {command}"),
+        let mut request = match client.requests.front_mut() {
+            Some(request) => request.clone(),
+            None => return None,
+        };
+
+        let msg = self.handle(&mut request).unwrap_or_else(|x| x.into());
+        if request.finished {
+            let client = self.clients.get_mut(&key).unwrap();
+            client.requests.pop_front();
         }
+        let response = Response {
+            message:  msg,
+            finished: request.finished,
+        };
+        Some(response)
+    }
+
+    pub fn is_finished(&mut self, key: Key) -> bool {
+        let client = self.clients.get(&key).unwrap();
+        client.requests.front().unwrap().finished
     }
 
     pub fn start(&mut self) {
@@ -57,8 +72,11 @@ impl BackEnd {
         self.dump_processes_status();
     }
 
-    pub fn insert(&mut self, key: Key, request: Request) {
+    pub fn insert(&mut self, key: Key, mut request: Request) {
         if let Some(client) = self.clients.get_mut(&key) {
+            if client.state != ClientState::Unattached {
+                request.command = Cmd::Other(request.command.into());
+            }
             client.requests.push_back(request);
         } else {
             let mut client = Client::new();

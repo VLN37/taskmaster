@@ -80,7 +80,6 @@ impl TaskMaster {
                 }
             } else if (ev.events & libc::EPOLLOUT as u32) != 0 {
                 self.respond(key)?;
-                info!("#{key} SENT");
             } else {
                 let ev = ev.events;
                 error!("Unexpected event: {}", ev);
@@ -110,10 +109,13 @@ impl TaskMaster {
     }
 
     fn respond(&mut self, key: Key) -> Result<(), ServerError> {
-        let msg = self.backend.get_response_for(key);
-        self.server.send(key, &msg)?;
-        // the connection is kept alive until dropped by client
-        self.request_read(key)?;
+        // the connection is kept alive until dropped by frontend
+
+        if let Some(response) = self.backend.get_response_for(key) {
+            self.server.send(key, &response.message)?;
+            self.request_read(key)?;
+            info!("#{key} SENT");
+        }
         Ok(())
     }
 }

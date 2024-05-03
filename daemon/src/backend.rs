@@ -1,5 +1,6 @@
 mod class;
 mod client;
+mod handlers;
 pub(super) mod print_functions;
 mod process;
 mod program;
