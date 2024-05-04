@@ -1,9 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 
+use common::{Key, Request};
 use logger::debug;
-
-use super::request::Request;
-use super::Key;
 
 #[derive(Default)]
 pub struct RequestFactory {
@@ -25,25 +23,18 @@ impl RequestFactory {
         }
     }
 
-    pub fn build_request(&mut self, request: &str) -> Request {
-        let v: Vec<&str> = request.split_whitespace().collect();
-        Request {
-            command: v.first().unwrap().to_string(),
-            arguments: v[1..].iter().map(|x| x.to_string()).collect(),
-            ..Default::default()
-        }
-    }
-
     pub fn parse(&mut self, k: Key) -> Option<Request> {
         let vec = self.clients.get_mut(&k).unwrap();
         debug!("Factory:  current request - {vec:?}");
         if vec.front().unwrap().contains('\n') {
             debug!("Factory: request is complete");
-            let request = vec.pop_front().unwrap();
+            let raw = vec.pop_front().unwrap();
             if vec.is_empty() {
                 self.clients.remove(&k);
             }
-            return Some(self.build_request(&request));
+            let mut request = Request::from(&raw);
+            request.client_key = k;
+            return Some(request);
         }
         None
     }

@@ -1,13 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::taskmaster::Request;
-
-#[derive(Debug, Default)]
-pub enum ClientState {
-    #[default]
-    Unattached,
-    Attached(String),
-}
+use common::{ClientState, Request};
 
 #[derive(Debug, Default)]
 pub struct Client {

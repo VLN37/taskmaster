@@ -1,44 +1,22 @@
-use core::fmt;
+mod class;
+mod error;
+mod error_kind;
+
 use std::result;
 
-#[derive(Debug)]
-pub enum Cmd {
-    Log,
-    Status,
-    Head,
-    Attach,
-}
+pub use class::Cmd;
+pub use error::CmdError;
+pub use error_kind::CmdErrorKind;
 
-impl Cmd {
-    pub fn parse(input: &str) -> Result<Cmd> {
-        match input.to_uppercase().as_str() {
-            "LOG" => Ok(Cmd::Log),
-            "STATUS" => Ok(Cmd::Status),
-            "HEAD" => Ok(Cmd::Head),
-            "ATTACH" => Ok(Cmd::Attach),
-            _ => Err(CmdError::new(&format!("Invalid command: {input}"))),
-        }
-    }
-}
+use crate::request::Request;
 
-#[derive(Debug)]
-pub struct CmdError {
-    pub message: String,
-}
-
-impl std::error::Error for CmdError {}
 pub type Result<Cmd> = result::Result<Cmd, CmdError>;
 
-impl fmt::Display for CmdError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.message)
-    }
-}
-
-impl CmdError {
-    pub fn new(msg: &str) -> CmdError {
-        CmdError {
-            message: msg.into(),
-        }
-    }
+pub trait CmdHandler {
+    fn handle(&mut self, request: &mut Request) -> result::Result<String, CmdError>;
+    fn attach(&mut self, request: &mut Request) -> result::Result<String, CmdError>;
+    fn log(&self, request: &mut Request) -> result::Result<String, CmdError>;
+    fn head(&self, request: &mut Request) -> result::Result<String, CmdError>;
+    fn status(&self, request: &mut Request) -> result::Result<String, CmdError>;
+    fn other(&self, request: &mut Request) -> result::Result<String, CmdError>;
 }
