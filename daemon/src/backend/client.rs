@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use common::request::{ClientState, Request};
+use common::{ClientState, Request};
 
 #[derive(Debug, Default)]
 pub struct Client {

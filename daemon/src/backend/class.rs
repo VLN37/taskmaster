@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-use common::request::Request;
-use common::server::Key;
-use common::{Cmd, CmdHandler, Response};
+use common::{Cmd, CmdHandler, Key, Request, Response};
 use logger::{debug, info};
 
 use super::print_functions::{print_processes, print_programs};
@@ -18,7 +16,7 @@ pub struct BackEnd {
 }
 
 impl BackEnd {
-    pub fn new(config: TaskMasterConfig) -> BackEnd {
+    pub fn new(config: TaskMasterConfig) -> Self {
         BackEnd {
             config,
             ..Default::default()

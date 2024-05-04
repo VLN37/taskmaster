@@ -1,5 +1,4 @@
-use common::request::{ClientState, Request};
-use common::{Cmd, CmdError, CmdErrorKind, CmdHandler};
+use common::{ClientState, Cmd, CmdError, CmdErrorKind, CmdHandler, Request};
 
 use crate::BackEnd;
 

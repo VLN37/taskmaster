@@ -1,7 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 
-use common::request::Request;
-use common::server::Key;
+use common::{Key, Request};
 use logger::debug;
 
 #[derive(Default)]

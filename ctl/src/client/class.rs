@@ -2,9 +2,8 @@ use std::collections::VecDeque;
 use std::io::Write;
 use std::os::unix::net::UnixStream;
 
-use common::request::{ClientState, Request};
 use common::server::{Key, Server, ServerError, SERVER_KEY};
-use common::{Cmd, CTL_SOCKET_PATH, DAEMON_SOCKET_PATH};
+use common::{ClientState, Cmd, Request, CTL_SOCKET_PATH, DAEMON_SOCKET_PATH};
 use libc::STDIN_FILENO;
 use logger::{debug, info};
 
