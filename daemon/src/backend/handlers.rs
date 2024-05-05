@@ -57,7 +57,7 @@ impl CmdHandler for BackEnd {
 
     fn status(&self, request: &mut Request) -> Result<String, CmdError> {
         request.finished = true;
-        Ok("todo!(status)".into())
+        Ok(self.format_status())
     }
 
     fn other(&self, request: &mut Request) -> Result<String, CmdError> {

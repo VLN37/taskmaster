@@ -37,7 +37,7 @@ impl Process {
 
     fn spawn_process(command: &mut Command) -> Result<Child, Error> {
         if command.get_program() == "" {
-            return Err(Error::new(io::ErrorKind::Other, "Empty command"));
+            return Err(Error::other("Empty command"));
         }
 
         command.spawn()
@@ -145,7 +145,7 @@ impl Process {
                             self.should_try_again = true;
                         }
                     }
-                    Err(_) => todo!("How could the wait fail?"),
+                    Err(e) => todo!("failed waiting for process to finish {e}"),
                 }
             }
         }
