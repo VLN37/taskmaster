@@ -1,6 +1,5 @@
-use super::ClientState;
 use crate::server::{Key, ServerError};
-use crate::Cmd;
+use crate::{ClientState, Cmd, RequestStatus};
 
 #[derive(Debug, Clone)]
 pub struct Request {
@@ -10,14 +9,6 @@ pub struct Request {
     pub finished:   bool,
     pub state:      ClientState,
     pub client_key: Key,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub enum RequestStatus {
-    #[default]
-    Pending,
-    Valid,
-    Invalid,
 }
 
 impl From<&String> for Request {
@@ -33,10 +24,6 @@ impl From<&str> for Request {
             ..Default::default()
         }
     }
-}
-
-impl From<RequestStatus> for bool {
-    fn from(value: RequestStatus) -> bool { value == RequestStatus::Valid }
 }
 
 impl Request {
