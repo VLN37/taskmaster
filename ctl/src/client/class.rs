@@ -66,6 +66,16 @@ impl Client {
         Ok(())
     }
 
+    fn build_request(&self, k: Key, raw: &str) -> Request {
+        let mut request = Request::from(raw);
+        request.client_key = k;
+        request.state = self.state.clone();
+        if request.state != ClientState::Unattached {
+            request.command = Cmd::Other(request.command.into());
+        }
+        request
+    }
+
     fn receive(&mut self, key: Key) -> Result<(), ServerError> {
         let msg = self.server.recv(key)?;
         if msg.trim().is_empty() {

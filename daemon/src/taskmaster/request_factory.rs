@@ -38,6 +38,4 @@ impl RequestFactory {
         }
         None
     }
-
-    // pub fn create_or_append(&mut self, k: key, buf: String) {}
 }
