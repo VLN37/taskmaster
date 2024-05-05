@@ -140,6 +140,20 @@ impl BackEnd {
     pub fn dump_processes_status(&self) {
         debug!("{}", print_processes(&self.programs));
     }
+
+    pub fn format_status(&self) -> String {
+        let mut dump = String::new();
+        for (_, program) in self.programs.iter() {
+            for (i, process) in program.processes.iter().enumerate() {
+                dump.push_str(&format!(
+                    "{:15}[{}]: {}\n",
+                    program.config_name, i, process
+                ));
+            }
+        }
+        dump.pop();
+        dump
+    }
 }
 
 fn get_diff(
