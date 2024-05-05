@@ -30,8 +30,6 @@ impl CmdHandler for BackEnd {
 
         let state = ClientState::Attached(command_name.into());
         request.state = state.clone();
-        let client = self.clients.get_mut(&request.client_key).unwrap();
-        client.state = state.clone();
         Ok("Attach successful!".into())
     }
 
