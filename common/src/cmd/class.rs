@@ -6,6 +6,7 @@ pub enum Cmd {
     Status,
     Head,
     Attach,
+    Unattach,
     Other(String),
 }
 
@@ -16,20 +17,15 @@ impl Cmd {
             "STATUS" => Ok(Cmd::Status),
             "HEAD" => Ok(Cmd::Head),
             "ATTACH" => Ok(Cmd::Attach),
-            other => Ok(Cmd::Other(other.into())),
+            "UNATTACH" => Ok(Cmd::Unattach),
+            other => Ok(Cmd::Other(other.to_string())),
         }
     }
 }
 
 impl fmt::Display for Cmd {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let cmd = match self {
-            Cmd::Log => "LOG",
-            Cmd::Status => "STATUS",
-            Cmd::Head => "HEAD",
-            Cmd::Attach => "ATTACH",
-            Cmd::Other(cmd) => cmd.as_str(),
-        };
+        let cmd = String::from(self);
         write!(f, "{cmd}")
     }
 }
@@ -41,7 +37,12 @@ impl From<Cmd> for String {
             Cmd::Status => "STATUS".to_string(),
             Cmd::Head => "HEAD".to_string(),
             Cmd::Attach => "ATTACH".to_string(),
+            Cmd::Unattach => "UNATTACH".to_string(),
             Cmd::Other(cmd) => cmd.to_string(),
         }
     }
+}
+
+impl From<&Cmd> for String {
+    fn from(value: &Cmd) -> Self { String::from(value.clone()) }
 }

@@ -70,7 +70,9 @@ impl Client {
         let mut request = Request::from(raw);
         request.client_key = k;
         request.state = self.state.clone();
-        if request.state != ClientState::Unattached {
+        if (request.state != ClientState::Unattached
+            && request.command != Cmd::Unattach)
+        {
             request.command = Cmd::Other(request.command.into());
         }
         request
@@ -94,9 +96,13 @@ impl Client {
             }
             _ => {
                 println!("backend: {msg}");
-                if msg.contains("Attach successful!") {
+                if msg.ends_with("Attach successful!") {
                     println!("frontend attached");
                     self.state = ClientState::Attached("backend knows".into());
+                }
+                if msg.ends_with("Unattach successful!") {
+                    println!("frontend unattached");
+                    self.state = ClientState::Unattached;
                 }
             }
         }

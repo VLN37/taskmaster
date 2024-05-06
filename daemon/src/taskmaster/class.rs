@@ -140,7 +140,10 @@ impl TaskMaster {
 
     pub fn insert_request(&mut self, k: Key, mut request: Request) {
         if let Some(client) = self.clients.get_mut(&k) {
-            if client.state != ClientState::Unattached {
+            request.state = client.state.clone();
+            if (request.state != ClientState::Unattached
+                && request.command != Cmd::Unattach)
+            {
                 request.command = Cmd::Other(request.command.into());
             }
             client.requests.push_back(request);
