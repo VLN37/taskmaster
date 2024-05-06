@@ -16,6 +16,7 @@ pub struct Client {
 }
 
 impl Client {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Client {
         Client {
             server:  Server::new(CTL_SOCKET_PATH),
@@ -108,16 +109,5 @@ impl Client {
             ClientState::Unattached => Server::write_event(key),
         };
         self.server.modify_interest(ev)
-    }
-}
-
-impl Default for Client {
-    fn default() -> Client {
-        Client {
-            server:  Server::new(CTL_SOCKET_PATH),
-            backend: UnixStream::connect(DAEMON_SOCKET_PATH).unwrap(),
-            queries: VecDeque::new(),
-            state:   ClientState::default(),
-        }
     }
 }
