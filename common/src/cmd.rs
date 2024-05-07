@@ -15,6 +15,7 @@ pub type Result<Cmd> = result::Result<Cmd, CmdError>;
 pub trait CmdHandler {
     fn handle(&mut self, request: &mut Request) -> result::Result<String, CmdError>;
     fn attach(&mut self, request: &mut Request) -> result::Result<String, CmdError>;
+    fn unattach(&mut self, request: &mut Request) -> result::Result<String, CmdError>;
     fn log(&self, request: &mut Request) -> result::Result<String, CmdError>;
     fn head(&self, request: &mut Request) -> result::Result<String, CmdError>;
     fn status(&self, request: &mut Request) -> result::Result<String, CmdError>;

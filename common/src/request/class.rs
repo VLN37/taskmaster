@@ -1,6 +1,5 @@
-use super::ClientState;
-use crate::server::{Key, ServerError};
-use crate::Cmd;
+use crate::server::Key;
+use crate::{ClientState, Cmd, CmdErrorKind, RequestStatus};
 
 #[derive(Debug, Clone)]
 pub struct Request {
@@ -9,15 +8,8 @@ pub struct Request {
     pub status:     RequestStatus,
     pub finished:   bool,
     pub state:      ClientState,
+    pub error:      Option<CmdErrorKind>,
     pub client_key: Key,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub enum RequestStatus {
-    #[default]
-    Pending,
-    Valid,
-    Invalid,
 }
 
 impl From<&String> for Request {
@@ -35,10 +27,6 @@ impl From<&str> for Request {
     }
 }
 
-impl From<RequestStatus> for bool {
-    fn from(value: RequestStatus) -> bool { value == RequestStatus::Valid }
-}
-
 impl Request {
     pub fn new() -> Request { Self::default() }
 
@@ -46,32 +34,25 @@ impl Request {
         match self.status {
             RequestStatus::Valid => true,
             RequestStatus::Invalid => false,
-            RequestStatus::Pending => self.validate().unwrap_or(false),
+            RequestStatus::Pending => self.validate(),
         }
     }
 
-    pub fn validate(&mut self) -> Result<bool, ServerError> {
-        self.validate_command()?;
-        Ok(true)
+    fn validate(&mut self) -> bool {
+        self.validate_command();
+        self.status == RequestStatus::Valid
     }
 
-    fn validate_command(&mut self) -> Result<bool, ServerError> {
+    fn validate_command(&mut self) {
         match &self.command {
             Cmd::Other(_) => match &self.state {
-                ClientState::Attached(_) => {
-                    self.status = RequestStatus::Valid;
-                    Ok(true)
-                }
+                ClientState::Attached(_) => self.status = RequestStatus::Valid,
                 ClientState::Unattached => {
                     self.status = RequestStatus::Invalid;
-                    let err = format!("Invalid command: {}", self.command);
-                    Err(ServerError::new(&err))
+                    self.error = Some(CmdErrorKind::NotFound(self.command.to_string()));
                 }
             },
-            _ => {
-                self.status = RequestStatus::Valid;
-                Ok(true)
-            }
+            _ => self.status = RequestStatus::Valid,
         }
     }
 }
@@ -85,6 +66,7 @@ impl Default for Request {
             finished:   false,
             state:      ClientState::default(),
             client_key: Key::default(),
+            error:      None,
         }
     }
 }

@@ -13,11 +13,10 @@ use libc::{
     EPOLL_CTL_ADD,
     EPOLL_CTL_DEL,
     EPOLL_CTL_MOD,
-    STDIN_FILENO,
 };
 use logger::{debug, error, info, warning};
 
-use super::{Key, SERVER_KEY};
+use super::{Key, SERVER_KEY, STDIN_KEY};
 use crate::syscall;
 
 pub struct Server {
@@ -115,7 +114,7 @@ impl Server {
     pub fn add_interest(&self, mut event: epoll_event) -> super::Result<()> {
         let mut fd: i32 = 0;
         let key = event.u64 as Key;
-        if key != STDIN_FILENO as Key {
+        if key != STDIN_KEY {
             fd = self.clients.get(&key).unwrap().as_raw_fd();
         }
         syscall!(epoll_ctl(self.pollfd, EPOLL_CTL_ADD, fd, &mut event))?;
@@ -125,7 +124,7 @@ impl Server {
     pub fn modify_interest(&self, mut event: epoll_event) -> super::Result<()> {
         let mut fd: i32 = 0;
         let key = event.u64 as Key;
-        if key != STDIN_FILENO as Key {
+        if key != STDIN_KEY {
             fd = self.clients.get(&key).unwrap().as_raw_fd();
         }
         syscall!(epoll_ctl(self.pollfd, EPOLL_CTL_MOD, fd, &mut event))?;
@@ -134,7 +133,7 @@ impl Server {
 
     pub fn remove_interest(&self, key: Key) -> super::Result<()> {
         let mut fd: i32 = 0;
-        if key != STDIN_FILENO as Key {
+        if key != STDIN_KEY {
             fd = self.clients.get(&key).unwrap().as_raw_fd();
         }
         syscall!(epoll_ctl(self.pollfd, EPOLL_CTL_DEL, fd, std::ptr::null_mut()))?;
@@ -186,14 +185,14 @@ impl Server {
     fn recv_stdin(&self) -> super::Result<String> {
         let mut buf = String::new();
         std::io::stdin().read_line(&mut buf)?;
-        let stdin = STDIN_FILENO as Key;
+        let stdin = STDIN_KEY;
         debug!("{:13}: |{}|", "STDIN", buf.escape_default());
         self.modify_interest(Server::read_event(stdin))?;
         Ok(buf)
     }
 
     pub fn recv(&mut self, key: Key) -> super::Result<String> {
-        if key == STDIN_FILENO as Key {
+        if key == STDIN_KEY {
             return self.recv_stdin();
         }
 

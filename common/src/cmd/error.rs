@@ -14,17 +14,17 @@ impl fmt::Display for CmdError {
 }
 
 impl CmdError {
-    pub fn new(msg: &str) -> CmdError {
+    pub fn new(message: &str) -> CmdError {
         CmdError {
-            message: msg.into(),
+            message: message.into(),
         }
     }
 }
 
 impl From<&str> for CmdError {
-    fn from(msg: &str) -> Self {
+    fn from(message: &str) -> Self {
         CmdError {
-            message: msg.into(),
+            message: message.into(),
         }
     }
 }
@@ -34,5 +34,5 @@ impl From<CmdError> for String {
 }
 
 impl From<String> for CmdError {
-    fn from(msg: String) -> Self { CmdError { message: msg } }
+    fn from(message: String) -> Self { CmdError { message } }
 }

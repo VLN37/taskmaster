@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use common::{Cmd, CmdHandler, Key, Request, Response};
+use common::{CmdHandler, Request, Response};
 use logger::{debug, info};
 
 use super::print_functions::{print_processes, print_programs};
-use super::{Client, ClientState, Process, Program};
+use super::{Process, Program};
 use crate::config::{ConfigError, ProgramConfig};
 use crate::TaskMasterConfig;
 
@@ -12,7 +12,6 @@ use crate::TaskMasterConfig;
 pub struct BackEnd {
     pub config:   TaskMasterConfig,
     pub programs: HashMap<String, Program>,
-    pub clients:  HashMap<Key, Client>,
 }
 
 impl BackEnd {
@@ -23,28 +22,12 @@ impl BackEnd {
         }
     }
 
-    pub fn get_response_for(&mut self, key: Key) -> Option<Response> {
-        let client = self.clients.get_mut(&key).unwrap();
-        let mut request = match client.requests.front_mut() {
-            Some(request) => request.clone(),
-            None => return None,
-        };
-
-        let msg = self.handle(&mut request).unwrap_or_else(|x| x.into());
-        if request.finished {
-            let client = self.clients.get_mut(&key).unwrap();
-            client.requests.pop_front();
-        }
-        let response = Response {
+    pub fn handle_request(&mut self, request: &mut Request) -> Response {
+        let msg = self.handle(request).unwrap_or_else(|x| x.into());
+        Response {
             message:  msg,
             finished: request.finished,
-        };
-        Some(response)
-    }
-
-    pub fn is_finished(&mut self, key: Key) -> bool {
-        let client = self.clients.get(&key).unwrap();
-        client.requests.front().unwrap().finished
+        }
     }
 
     pub fn start(&mut self) {
@@ -70,22 +53,15 @@ impl BackEnd {
         self.dump_processes_status();
     }
 
-    pub fn insert(&mut self, key: Key, mut request: Request) {
-        if let Some(client) = self.clients.get_mut(&key) {
-            if client.state != ClientState::Unattached {
-                request.command = Cmd::Other(request.command.into());
-            }
-            client.requests.push_back(request);
-        } else {
-            let mut client = Client::new();
-            client.requests.push_back(request);
-            self.clients.insert(key, client);
-        }
-    }
+    #[allow(dead_code)]
+    fn start_procesess(programs: &mut HashMap<String, Program>) {
+        programs.iter_mut().for_each(|(_, program)| {
+            program.processes = (0..program.config.processes)
+                .map(|_| Process::start(&mut program.command))
+                .collect();
 
-    pub fn is_attached(&self, k: Key) -> bool {
-        let c = self.clients.get(&k).expect("the client to exist");
-        c.state != ClientState::Unattached
+            program.update_process_status();
+        });
     }
 
     fn create_programs(

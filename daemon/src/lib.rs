@@ -1,3 +1,5 @@
+#![allow(unused_parens)] // see TaskMaster::insert_request
+
 pub mod backend;
 pub mod config;
 pub mod signal_handling;

@@ -2,12 +2,11 @@ use std::collections::VecDeque;
 use std::io::Write;
 use std::os::unix::net::UnixStream;
 
-use common::server::{Key, Server, ServerError, SERVER_KEY};
+use common::server::{Key, Server, ServerError, SERVER_KEY, STDIN_KEY};
 use common::{ClientState, Cmd, Request, CTL_SOCKET_PATH, DAEMON_SOCKET_PATH};
-use libc::STDIN_FILENO;
 use logger::{debug, info};
 
-const BACK: Key = 1;
+const BACKEND_KEY: Key = 1;
 
 pub struct Client {
     pub server:  Server,
@@ -17,6 +16,7 @@ pub struct Client {
 }
 
 impl Client {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Client {
         Client {
             server:  Server::new(CTL_SOCKET_PATH),
@@ -29,12 +29,11 @@ impl Client {
     pub fn build(&mut self) -> Result<(), ServerError> {
         self.server.build()?;
 
-        let stdin = STDIN_FILENO as Key;
-        self.server.add_interest(Server::read_event(stdin))?;
+        self.server.add_interest(Server::read_event(STDIN_KEY))?;
 
         self.backend.set_nonblocking(true)?;
         self.server.clients.insert(1, self.backend.try_clone()?);
-        self.server.add_interest(Server::write_event(BACK))?;
+        self.server.add_interest(Server::write_event(BACKEND_KEY))?;
         Ok(())
     }
 
@@ -61,9 +60,22 @@ impl Client {
     fn query(&mut self) -> Result<(), ServerError> {
         if let Some(query) = self.queries.pop_front() {
             self.backend.write_all(query.as_bytes())?;
-            self.server.modify_interest(Server::read_event(BACK))?;
+            self.server
+                .modify_interest(Server::read_event(BACKEND_KEY))?;
         }
         Ok(())
+    }
+
+    fn build_request(&self, k: Key, raw: &str) -> Request {
+        let mut request = Request::from(raw);
+        request.client_key = k;
+        request.state = self.state.clone();
+        if (request.state != ClientState::Unattached
+            && request.command != Cmd::Unattach)
+        {
+            request.command = Cmd::Other(request.command.into());
+        }
+        request
     }
 
     fn receive(&mut self, key: Key) -> Result<(), ServerError> {
@@ -71,30 +83,27 @@ impl Client {
         if msg.trim().is_empty() {
             return Ok(());
         }
-        if key == STDIN_FILENO as Key {
-            let mut request = Request::from(&msg);
-            request.client_key = key;
-            request.state = self.state.clone();
-            if request.state != ClientState::Unattached {
-                request.command = Cmd::Other(request.command.into());
+        match key {
+            STDIN_KEY => {
+                let mut request = self.build_request(key, &msg);
+                if request.is_valid() {
+                    self.queries.push_back(msg);
+                    self.request_write(BACKEND_KEY)?;
+                    debug!("current queries: {:?}", &self.queries);
+                } else {
+                    println!("Error: {}", request.error.unwrap());
+                }
             }
-            debug!(
-                "{}\nself state: {:?}\nrequest state: {:?}\ncommand: {}",
-                "PRE-REQUEST_VALIDATION", self.state, request.state, request.command,
-            );
-            let res = request.validate();
-            if res.is_err() {
-                println!("Error: {}", res.unwrap_err());
-            } else {
-                self.queries.push_back(msg);
-                self.request_write(BACK)?;
-                debug!("current queries: {:?}", &self.queries);
-            }
-        } else {
-            println!("backend: {msg}");
-            if msg.contains("Attach successful!") {
-                println!("frontend attached");
-                self.state = ClientState::Attached("backend knows".into());
+            _ => {
+                println!("backend: {msg}");
+                if msg.ends_with("Attach successful!") {
+                    println!("frontend attached");
+                    self.state = ClientState::Attached("backend knows".into());
+                }
+                if msg.ends_with("Unattach successful!") {
+                    println!("frontend unattached");
+                    self.state = ClientState::Unattached;
+                }
             }
         }
         Ok(())
@@ -106,16 +115,5 @@ impl Client {
             ClientState::Unattached => Server::write_event(key),
         };
         self.server.modify_interest(ev)
-    }
-}
-
-impl Default for Client {
-    fn default() -> Client {
-        Client {
-            server:  Server::new(CTL_SOCKET_PATH),
-            backend: UnixStream::connect(DAEMON_SOCKET_PATH).unwrap(),
-            queries: VecDeque::new(),
-            state:   ClientState::default(),
-        }
     }
 }

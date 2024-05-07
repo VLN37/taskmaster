@@ -9,6 +9,7 @@ impl CmdHandler for BackEnd {
             Cmd::Status => self.status(request),
             Cmd::Head => self.head(request),
             Cmd::Attach => self.attach(request),
+            Cmd::Unattach => self.unattach(request),
             Cmd::Other(_) => self.other(request),
         }
     }
@@ -30,9 +31,18 @@ impl CmdHandler for BackEnd {
 
         let state = ClientState::Attached(command_name.into());
         request.state = state.clone();
-        let client = self.clients.get_mut(&request.client_key).unwrap();
-        client.state = state.clone();
         Ok("Attach successful!".into())
+    }
+
+    fn unattach(&mut self, request: &mut Request) -> Result<String, CmdError> {
+        request.finished = true;
+
+        if request.state == ClientState::Unattached {
+            return Err("Already Unattached".into());
+        }
+
+        request.state = ClientState::Unattached;
+        Ok("Unattach succesful!".into())
     }
 
     fn log(&self, request: &mut Request) -> Result<String, CmdError> {
