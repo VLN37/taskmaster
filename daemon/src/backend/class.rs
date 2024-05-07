@@ -53,16 +53,6 @@ impl BackEnd {
         self.dump_processes_status();
     }
 
-    fn start_procesess(programs: &mut HashMap<String, Program>) {
-        programs.iter_mut().for_each(|(_, program)| {
-            program.processes = (0..program.config.processes)
-                .map(|_| Process::start(&mut program.command))
-                .collect();
-
-            program.update_process_status();
-        });
-    }
-
     fn create_programs(
         program_configs: &HashMap<String, ProgramConfig>,
     ) -> HashMap<String, Program> {
@@ -84,6 +74,20 @@ impl BackEnd {
 
                 program.update_process_status();
             });
+    }
+
+    pub fn format_status(&self) -> String {
+        let mut dump = String::new();
+        for (_, program) in self.programs.iter() {
+            for (i, process) in program.processes.iter().enumerate() {
+                dump.push_str(&format!(
+                    "{:15}[{}]: {}\n",
+                    program.config_name, i, process
+                ));
+            }
+        }
+        dump.pop();
+        dump
     }
 
     fn create_processes(program: &mut Program, count: usize) -> Vec<Process> {
@@ -114,20 +118,6 @@ impl BackEnd {
 
     pub fn dump_processes_status(&self) {
         debug!("{}", print_processes(&self.programs));
-    }
-
-    pub fn format_status(&self) -> String {
-        let mut dump = String::new();
-        for (_, program) in self.programs.iter() {
-            for (i, process) in program.processes.iter().enumerate() {
-                dump.push_str(&format!(
-                    "{:15}[{}]: {}\n",
-                    program.config_name, i, process
-                ));
-            }
-        }
-        dump.pop();
-        dump
     }
 }
 
