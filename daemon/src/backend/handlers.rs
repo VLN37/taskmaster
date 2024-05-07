@@ -42,7 +42,7 @@ impl CmdHandler for BackEnd {
         }
 
         request.state = ClientState::Unattached;
-        Ok("Unattach succesful!".into())
+        Ok("Unattach successful!".into())
     }
 
     fn log(&self, request: &mut Request) -> Result<String, CmdError> {
