@@ -1,9 +1,3 @@
-<script>
-  const callbackFunction = function () {
-    alert('A callback was triggered');
-  };
-</script>
-
 ```mermaid
 classDiagram
 direction LR
