@@ -1,4 +1,5 @@
 mod class;
+mod logging;
 mod status;
 #[cfg(test)]
 mod tests;

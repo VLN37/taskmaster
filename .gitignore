@@ -6,3 +6,4 @@ ctl-socket
 supervisor*
 daemon/logs
 logs
+*.log

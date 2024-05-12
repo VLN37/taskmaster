@@ -6,6 +6,7 @@ use std::time::{Duration, Instant};
 
 use logger::{error, info};
 
+use super::logging::get_logfile;
 #[cfg(test)]
 use super::tests::{Duration, Instant};
 use super::ProcessStatus;
@@ -18,6 +19,7 @@ pub struct Process {
     pub started_at:       Option<Instant>,
     pub should_try_again: bool,
     pub should_restart:   bool,
+    pub log_file:         String,
 }
 
 impl Process {
@@ -40,7 +42,9 @@ impl Process {
             return Err(Error::other("Empty command"));
         }
 
-        command.spawn()
+        let logfile = get_logfile("test.log".into())?;
+
+        command.stdout(logfile).spawn()
     }
 
     pub fn start(command: &mut Command) -> Process {
@@ -224,6 +228,7 @@ impl Default for Process {
             started_at:       None,
             should_restart:   false,
             should_try_again: false,
+            log_file:         "".to_string(),
         }
     }
 }
