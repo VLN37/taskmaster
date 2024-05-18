@@ -4,7 +4,7 @@ use std::os::unix::net::UnixStream;
 
 use common::server::{Key, Server, ServerError, SERVER_KEY, STDIN_KEY};
 use common::{ClientState, Cmd, Request, CTL_SOCKET_PATH, DAEMON_SOCKET_PATH};
-use logger::{debug, info};
+use logger::{debug, info, warning};
 
 const BACKEND_KEY: Key = 1;
 
@@ -50,7 +50,7 @@ impl Client {
             if (ev.events & libc::EPOLLIN as u32) != 0 {
                 self.receive(key)?;
             }
-            if (ev.events & libc::EPOLLOUT as u32) != 0 && !self.queries.is_empty() {
+            if (ev.events & libc::EPOLLOUT as u32) != 0 {
                 self.query()?;
             }
         }
@@ -62,6 +62,8 @@ impl Client {
             self.backend.write_all(query.as_bytes())?;
             self.server
                 .modify_interest(Server::read_event(BACKEND_KEY))?;
+        } else {
+            warning!("backend EPOLLOUT request without any queries available")
         }
         Ok(())
     }

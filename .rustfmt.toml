@@ -8,3 +8,11 @@ format_strings = true
 imports_granularity = "Module"
 imports_layout = "HorizontalVertical"
 group_imports = "StdExternalCrate"
+
+# enum_discrim_align_threshold = 20
+# struct_field_align_threshold = 20
+# fn_single_line = true
+# format_strings = true
+# imports_granularity = "Module"
+# imports_layout = "HorizontalVertical"
+# group_imports = "StdExternalCrate"
