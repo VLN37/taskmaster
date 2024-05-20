@@ -8,7 +8,7 @@ use logger::{debug, error, info};
 
 use super::{Client, RequestFactory, Status};
 use crate::signal_handling::{install_sigchld_handler, install_sighup_handler};
-use crate::BackEnd;
+use crate::{BackEnd, TaskMasterConfig};
 
 pub struct TaskMaster {
     pub server:      Server,
@@ -35,8 +35,9 @@ impl TaskMaster {
     pub fn build(&mut self, config_filename: &str) -> Result<(), ServerError> {
         self.server.build()?;
         let file = File::open(config_filename)?;
-        self.config_filename = config_filename.into();
-        self.backend = BackEnd::new(file.into());
+        let config = TaskMasterConfig::from(file);
+        config.validate()?;
+        self.backend = BackEnd::new(config);
         self.backend.start();
 
         let ptr: *mut Status = &mut self.status;

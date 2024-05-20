@@ -19,6 +19,13 @@ impl TaskMasterConfig {
     pub fn read(file: File) -> Result<TaskMasterConfig, serde_yaml::Error> {
         serde_yaml::from_reader(file)
     }
+
+    pub fn validate(&self) -> Result<(), String> {
+        for v in self.programs.values() {
+            v.validate()?;
+        }
+        Ok(())
+    }
 }
 
 impl From<File> for TaskMasterConfig {

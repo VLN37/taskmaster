@@ -35,6 +35,15 @@ impl From<io::Error> for ServerError {
     }
 }
 
+impl From<String> for ServerError {
+    fn from(error: String) -> Self {
+        ServerError {
+            kind:    String::from("ConfigError"),
+            message: error,
+        }
+    }
+}
+
 impl From<RawOsError> for ServerError {
     fn from(error: RawOsError) -> Self {
         ServerError {

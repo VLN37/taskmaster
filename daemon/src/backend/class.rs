@@ -1,4 +1,7 @@
 use std::collections::HashMap;
+use std::fs::OpenOptions;
+use std::path::PathBuf;
+use std::{env, fs};
 
 use common::{CmdHandler, Request, Response};
 use logger::{debug, info};
@@ -34,9 +37,44 @@ impl BackEnd {
         print_programs("initial programs", &self.config.programs);
         self.programs = Self::create_programs(&self.config.programs);
 
+        self.create_log_files();
         self.create_startup_processes();
 
         print_processes(&self.programs);
+    }
+
+    fn create_log_files(&mut self) {
+        let mut opts = OpenOptions::new();
+        opts.read(true).append(true).create(true);
+
+        let mut log_dir = env::current_dir().unwrap();
+        log_dir.push("daemon/logs/");
+        fs::create_dir_all(&log_dir).unwrap();
+
+        let mut log_file = log_dir.clone();
+        log_file.push("log.txt");
+        opts.open(log_file).unwrap();
+
+        for program in self.programs.values() {
+            let name = format!("{}/{}", log_dir.display(), program.config.command);
+            let program_dir = PathBuf::from(name);
+            for i in 0..program.config.processes {
+                if program.config.command.is_empty() {
+                    continue;
+                }
+                let mut process_dir = program_dir.clone();
+                process_dir.push(format!("p{i}/"));
+                if fs::metadata(&process_dir).is_err() {
+                    fs::create_dir_all(&process_dir).unwrap();
+                };
+                let mut stdout = process_dir.clone();
+                stdout.push("stdout");
+                let mut stderr = process_dir.clone();
+                stderr.push("stderr");
+                opts.open(stdout).unwrap();
+                opts.open(stderr).unwrap();
+            }
+        }
     }
 
     pub fn update_processes_status(&mut self) {

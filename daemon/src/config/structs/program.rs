@@ -1,6 +1,10 @@
+use std::fs;
+
+use logger::debug;
 use serde::{Deserialize, Serialize};
 
-use super::{RestartOption, Signal};
+use super::file_handler::KnownHandler;
+use super::{IOHandler, RestartOption, Signal};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
@@ -18,10 +22,35 @@ pub struct ProgramConfig {
     pub workdir:               String,
     pub environment_variables: Vec<String>,
     pub umask:                 u32,
+    pub logdir:                Option<String>,
+    pub stdin:                 IOHandler,
+    pub stdout:                IOHandler,
+    pub stderr:                IOHandler,
 }
 
 impl ProgramConfig {
     pub fn new() -> ProgramConfig { ProgramConfig::default() }
+
+    pub fn validate(&self) -> Result<(), String> {
+        if self.processes > 1 {
+            for v in [&self.stdout, &self.stdin, &self.stderr] {
+                if let IOHandler::FILE(f) = v {
+                    println!("{f}");
+                    return Err("Multiprocess cannot have single output".into());
+                }
+            }
+        }
+        for v in [&self.stdout, &self.stdin, &self.stderr] {
+            if let IOHandler::FILE(filename) = v {
+                if fs::metadata(filename).is_err() {
+                    fs::File::create(filename).unwrap();
+                }
+                let metadata = fs::metadata(filename).unwrap();
+                debug!("out|{}{} {:?}", self.command, filename, metadata.permissions());
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Default for ProgramConfig {
@@ -40,6 +69,10 @@ impl Default for ProgramConfig {
             workdir:               std::env::var("CWD").unwrap_or(String::from("/")),
             environment_variables: vec![],
             umask:                 420,
+            logdir:                None,
+            stdin:                 IOHandler::KNOWN(KnownHandler::DEFAULT),
+            stdout:                IOHandler::KNOWN(KnownHandler::DEFAULT),
+            stderr:                IOHandler::KNOWN(KnownHandler::DEFAULT),
         }
     }
 }
@@ -62,6 +95,10 @@ impl Clone for ProgramConfig {
             workdir:               self.workdir.clone(),
             environment_variables: self.environment_variables.clone(),
             umask:                 self.umask,
+            logdir:                self.logdir.clone(),
+            stdin:                 self.stdin.clone(),
+            stdout:                self.stdout.clone(),
+            stderr:                self.stderr.clone(),
         }
     }
 }
