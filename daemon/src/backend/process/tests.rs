@@ -5,7 +5,7 @@ use crate::backend::process::{Process, ProcessStatus};
 use crate::config::{ProgramConfig, RestartOption};
 
 #[test]
-fn test_process_should_spawn_program_immediately() {
+fn test_process_should_not_spawn_program_immediately() {
     // given
     let mut config = ProgramConfig::new();
     config.command = String::from("sleep");
@@ -14,7 +14,7 @@ fn test_process_should_spawn_program_immediately() {
     // when
     let process = Process::new(&config);
     // then
-    assert!(process.child.is_ok());
+    assert!(process.child.is_err());
 }
 
 #[test]
@@ -25,7 +25,8 @@ fn test_initial_status_should_be_starting() {
     config.args.push(String::from("1"));
     config.restart = RestartOption::NEVER;
     // when
-    let process = Process::new(&config);
+    let mut process = Process::new(&config);
+    process.start();
     // then
     assert_eq!(process.status, ProcessStatus::Starting);
 }
@@ -43,6 +44,7 @@ fn test_status_should_be_gracefulexit_when_program_exits_with_a_status_specified
 
     // when
     let mut process = Process::new(&config);
+    process.start();
 
     // then
     // start as starting
@@ -68,6 +70,7 @@ fn test_status_should_be_failed_exit_when_program_exits_with_a_status_not_specif
     config.success_codes = vec![0];
     // when
     let mut process = Process::new(&config);
+    process.start();
     // then
     assert_eq!(process.status, ProcessStatus::Starting);
     process.child.as_mut().unwrap().wait().unwrap();
@@ -85,6 +88,7 @@ fn test_status_should_be_killed_when_program_is_killed() {
     config.restart = RestartOption::NEVER;
     // when
     let mut process = Process::new(&config);
+    process.start();
     // then
     assert_eq!(process.status, ProcessStatus::Starting);
     process.child.as_mut().unwrap().kill().unwrap();
@@ -116,6 +120,7 @@ fn test_kill_enum_should_be_equivalent_to_the_signal_sent() {
     config.restart = RestartOption::NEVER;
     // when
     let mut process = Process::new(&config);
+    process.start();
     // then
     assert_eq!(process.status, ProcessStatus::Starting);
     send_signal(
@@ -140,6 +145,7 @@ fn test_status_should_be_starting_if_not_enough_time_has_passed_since_start() {
     config.succesful_start_after = 5;
 
     let mut process = Process::new(&config);
+    process.start();
     assert_eq!(process.status, ProcessStatus::Starting);
 
     Instant::advance(2);
@@ -160,6 +166,7 @@ fn test_status_should_be_active_if_enough_time_has_passed_since_start() {
     config.restart = RestartOption::NEVER;
     config.succesful_start_after = 5;
     let mut process = Process::new(&config);
+    process.start();
     assert_eq!(process.status, ProcessStatus::Starting);
     Instant::advance(6);
     // when
@@ -180,6 +187,7 @@ fn process_should_restart_if_it_exits_with_an_error_code_and_restart_option_is_a
 
     // when
     let mut process = Process::new(&config);
+    process.start();
     process.child.as_mut().unwrap().wait().unwrap();
     process.update_status(&config);
 
