@@ -1,4 +1,5 @@
-use std::io::{self, Error};
+use std::collections::HashMap;
+use std::io::Error;
 use std::os::unix::process::ExitStatusExt;
 use std::process::{Child, Command};
 #[cfg(not(test))]
@@ -14,41 +15,65 @@ use crate::config::{ProgramConfig, RestartOption, Signal};
 
 pub struct Process {
     pub child:            Result<Child, Error>,
+    pub command:          Command,
     pub status:           ProcessStatus,
-    pub try_count:        u32,
+    pub attempt:          u32,
     pub started_at:       Option<Instant>,
     pub should_try_again: bool,
     pub should_restart:   bool,
-    pub log_file:         String,
+    pub stdout_file:      String,
+    pub stderr_file:      String,
 }
 
 impl Process {
-    pub fn new(
-        child_result: Result<Child, Error>,
-        initial_status: ProcessStatus,
-    ) -> Process {
-        let started_at = child_result.is_ok().then_some(Instant::now()).or(None);
-
+    pub fn new(program_config: &ProgramConfig) -> Process {
         Process {
-            child: child_result,
-            status: initial_status,
-            started_at,
-            ..Process::default()
+            child:            Err(Error::other("Unititialized process")),
+            command:          Process::make_command(program_config),
+            status:           ProcessStatus::Stopped,
+            attempt:          0,
+            started_at:       None,
+            should_try_again: false,
+            should_restart:   false,
+            stdout_file:      "".to_string(),
+            stderr_file:      "".to_string(),
         }
     }
 
-    fn spawn_process(command: &mut Command) -> Result<Child, Error> {
-        if command.get_program() == "" {
+    fn make_command(command_config: &ProgramConfig) -> Command {
+        let mut command = Command::new(&command_config.command);
+        command
+            .current_dir(&command_config.workdir)
+            .args(&command_config.args)
+            .envs(
+                command_config
+                    .environment_variables
+                    .iter()
+                    .filter_map(|var| var.split_once('='))
+                    .map(|(var, value)| (var.to_string(), value.to_string()))
+                    .collect::<HashMap<String, String>>(),
+            );
+        command
+    }
+
+    fn spawn_process(&mut self) -> Result<Child, Error> {
+        if self.command.get_program() == "" {
             return Err(Error::other("Empty command"));
         }
 
-        let logfile = get_logfile("test.log".into())?;
+        let stdout_filename = format!("{}-stdout.log", self.stdout_file);
+        let stderr_filename = format!("{}-stderr.log", self.stderr_file);
+        let stdout_logfile = get_logfile(&stdout_filename)?;
+        let stderr_logfile = get_logfile(&stderr_filename)?;
 
-        command.stdout(logfile).spawn()
+        self.command
+            .stdout(stdout_logfile)
+            .stderr(stderr_logfile)
+            .spawn()
     }
 
-    pub fn start(command: &mut Command) -> Process {
-        let child = Process::spawn_process(command);
+    pub fn start(&mut self) {
+        let child = self.spawn_process();
 
         let status = if child
             .as_ref()
@@ -59,7 +84,8 @@ impl Process {
             ProcessStatus::Starting
         };
 
-        Process::new(child, status)
+        self.child = child;
+        self.status = status;
     }
 
     pub fn update_status(&mut self, config: &ProgramConfig) {
@@ -69,6 +95,7 @@ impl Process {
         }
 
         match self.status {
+            ProcessStatus::Stopped => {}
             ProcessStatus::Starting => self.handle_starting_phase(config),
             ProcessStatus::FailedToStart => {}
             ProcessStatus::Active => self.handle_active_phase(config),
@@ -76,39 +103,37 @@ impl Process {
             ProcessStatus::Killed(_) => self.handle_killed_phase(config),
             ProcessStatus::FailedExit(_) => self.handle_failed_exit_phase(config),
         }
-
-        // self.update_status_match(config);
     }
 
-    pub fn restart(&mut self, command: &mut Command) {
+    pub fn restart(&mut self) {
         self.should_restart = false;
         if self.status == ProcessStatus::FailedToStart {
             return;
         }
 
-        info!("Restarting process {:?}", command.get_program());
-        self.child = Process::spawn_process(command);
+        info!("Restarting process {:?}", self.command.get_program());
+        self.child = self.spawn_process();
         self.status = ProcessStatus::Starting;
     }
 
-    pub fn try_start_again(&mut self, command: &mut Command) {
+    pub fn try_start_again(&mut self) {
         self.should_try_again = false;
         if self.status == ProcessStatus::FailedToStart {
             return;
         }
-        self.try_count += 1;
+        self.attempt += 1;
         info!(
             "Trying to start process again [retry {}] {:?}",
-            self.try_count,
-            command.get_program(),
+            self.attempt,
+            self.command.get_program(),
         );
 
-        self.child = Process::spawn_process(command);
+        self.child = self.spawn_process();
         self.started_at = Some(Instant::now());
     }
 
     fn handle_starting_phase(&mut self, config: &ProgramConfig) {
-        if self.try_count >= config.retry_start_count {
+        if self.attempt >= config.retry_start_count {
             self.status = ProcessStatus::FailedToStart;
         } else {
             let time_elapsed = self.time_elapsed();
@@ -219,16 +244,15 @@ impl Process {
 impl Default for Process {
     fn default() -> Self {
         Process {
-            child:            Err(Error::new(
-                io::ErrorKind::Other,
-                "Unititialized process",
-            )),
-            status:           ProcessStatus::FailedToStart,
-            try_count:        0,
+            child:            Err(Error::other("Unititialized process")),
+            command:          Command::new(""),
+            status:           ProcessStatus::Stopped,
+            attempt:          0,
             started_at:       None,
             should_restart:   false,
             should_try_again: false,
-            log_file:         "".to_string(),
+            stdout_file:      "".to_string(),
+            stderr_file:      "".to_string(),
         }
     }
 }

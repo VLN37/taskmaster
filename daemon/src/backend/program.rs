@@ -1,8 +1,6 @@
 use std::cmp::Ordering;
-use std::collections::HashMap;
 use std::env;
 use std::fs::{File, OpenOptions};
-use std::process::Command;
 
 use super::process::Process;
 use crate::config::structs::{IOHandler, KnownHandler};
@@ -11,7 +9,6 @@ use crate::config::ProgramConfig;
 pub struct Program {
     pub config_name: String,
     pub config:      ProgramConfig,
-    pub command:     Command,
     pub stdout:      Vec<Option<File>>,
     pub stderr:      Vec<Option<File>>,
     pub processes:   Vec<Process>,
@@ -21,25 +18,12 @@ impl Program {
     pub fn build_from(
         (config_name, command_config): (&String, &ProgramConfig),
     ) -> Program {
-        let mut command = Command::new(&command_config.command);
-        command
-            .current_dir(&command_config.workdir)
-            .args(&command_config.args)
-            .envs(
-                command_config
-                    .environment_variables
-                    .iter()
-                    .filter_map(|var| var.split_once('='))
-                    .map(|(var, value)| (var.to_string(), value.to_string()))
-                    .collect::<HashMap<String, String>>(),
-            );
         Program {
             config_name: config_name.to_string(),
-            config: command_config.clone(),
-            command,
-            processes: vec![],
-            stdout: vec![],
-            stderr: vec![],
+            config:      command_config.clone(),
+            processes:   vec![],
+            stdout:      vec![],
+            stderr:      vec![],
         }
     }
 
@@ -111,9 +95,9 @@ impl Program {
         self.processes.iter_mut().for_each(|p| {
             p.update_status(&self.config);
             if p.should_restart {
-                p.restart(&mut self.command);
+                p.restart();
             } else if p.should_try_again {
-                p.try_start_again(&mut self.command);
+                p.try_start_again();
             }
         })
     }
@@ -124,7 +108,9 @@ impl Program {
         match current_count.cmp(&desired_count) {
             Ordering::Less => {
                 for _ in 0..desired_count - current_count {
-                    self.processes.push(Process::start(&mut self.command));
+                    let mut process = self.create_process();
+                    process.start();
+                    self.processes.push(process);
                 }
             }
             Ordering::Greater => {
@@ -135,6 +121,8 @@ impl Program {
             _ => {}
         }
     }
+
+    fn create_process(&self) -> Process { Process::new(&self.config) }
 }
 
 #[cfg(test)]

@@ -130,10 +130,8 @@ impl BackEnd {
         dump
     }
 
-    fn create_processes(program: &mut Program, count: usize) -> Vec<Process> {
-        (0..count)
-            .map(|_| Process::start(&mut program.command))
-            .collect()
+    fn create_processes(program: &Program, count: usize) -> Vec<Process> {
+        (0..count).map(|_| Process::new(&program.config)).collect()
     }
 
     pub fn update(&mut self, new_config: TaskMasterConfig) -> Result<(), ConfigError> {

@@ -2,6 +2,7 @@ use crate::config::Signal;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ProcessStatus {
+    Stopped,
     Starting,
     FailedToStart,
     Active,
