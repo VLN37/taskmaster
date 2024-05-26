@@ -81,6 +81,7 @@ impl Process {
         {
             ProcessStatus::FailedToStart
         } else {
+            self.started_at = Some(Instant::now());
             ProcessStatus::Starting
         };
 
