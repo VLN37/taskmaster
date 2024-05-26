@@ -112,6 +112,12 @@ impl BackEnd {
                 program.processes =
                     Self::create_processes(program, program.config.processes);
 
+                if program.config.run_at_startup {
+                    program.processes.iter_mut().for_each(|process| {
+                        process.start();
+                    });
+                }
+
                 program.update_process_status();
             });
     }
