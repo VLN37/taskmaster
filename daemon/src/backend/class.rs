@@ -48,7 +48,7 @@ impl BackEnd {
         opts.read(true).append(true).create(true);
 
         let mut log_dir = env::current_dir().unwrap();
-        log_dir.push("daemon/logs/");
+        log_dir.push("logs/");
         fs::create_dir_all(&log_dir).unwrap();
 
         let mut log_file = log_dir.clone();

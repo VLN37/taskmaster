@@ -5,3 +5,4 @@ ctl-socket
 .vscode
 supervisor*
 daemon/logs
+logs
