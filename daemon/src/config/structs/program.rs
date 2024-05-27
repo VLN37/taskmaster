@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use super::file_handler::KnownHandler;
 use super::{IOHandler, RestartOption, Signal};
+use crate::config::ConfigError;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
@@ -31,7 +32,7 @@ pub struct ProgramConfig {
 impl ProgramConfig {
     pub fn new() -> ProgramConfig { ProgramConfig::default() }
 
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> Result<(), ConfigError> {
         if self.processes > 1 {
             for v in [&self.stdout, &self.stdin, &self.stderr] {
                 if let IOHandler::FILE(f) = v {
@@ -43,9 +44,10 @@ impl ProgramConfig {
         for v in [&self.stdout, &self.stdin, &self.stderr] {
             if let IOHandler::FILE(filename) = v {
                 if fs::metadata(filename).is_err() {
-                    fs::File::create(filename).unwrap();
+                    fs::File::create(filename)?;
                 }
-                let metadata = fs::metadata(filename).unwrap();
+                let metadata = fs::metadata(filename)?;
+                fs::File::open(filename)?;
                 debug!("out|{}{} {:?}", self.command, filename, metadata.permissions());
             }
         }

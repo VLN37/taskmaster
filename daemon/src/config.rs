@@ -3,8 +3,10 @@ use std::fs::File;
 
 use serde::{Deserialize, Serialize};
 
+pub mod error;
 pub mod exceptions;
 pub mod structs;
+pub use error::ConfigError;
 pub use structs::{ProgramConfig, RestartOption, Signal};
 
 #[derive(Default, Debug, Serialize, Deserialize, PartialEq)]
@@ -12,15 +14,12 @@ pub struct TaskMasterConfig {
     pub programs: HashMap<String, ProgramConfig>,
 }
 
-#[derive(Copy, Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct ConfigError {}
-
 impl TaskMasterConfig {
     pub fn read(file: File) -> Result<TaskMasterConfig, serde_yaml::Error> {
         serde_yaml::from_reader(file)
     }
 
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> Result<(), ConfigError> {
         for v in self.programs.values() {
             v.validate()?;
         }
