@@ -1,14 +1,19 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::env;
+use std::fs::{File, OpenOptions};
 use std::process::Command;
 
 use super::process::Process;
+use crate::config::structs::{IOHandler, KnownHandler};
 use crate::config::ProgramConfig;
 
 pub struct Program {
     pub config_name: String,
     pub config:      ProgramConfig,
     pub command:     Command,
+    pub stdout:      Vec<Option<File>>,
+    pub stderr:      Vec<Option<File>>,
     pub processes:   Vec<Process>,
 }
 
@@ -33,7 +38,73 @@ impl Program {
             config: command_config.clone(),
             command,
             processes: vec![],
+            stdout: vec![],
+            stderr: vec![],
         }
+    }
+
+    pub fn create_output_files(&mut self) {
+        for i in 0..self.config.processes {
+            let mut opts = OpenOptions::new();
+            opts.create(true).write(true).append(true).read(true);
+            if let IOHandler::FILE(filename) = &self.config.stdout {
+                self.stdout.push(Some(opts.open(filename).unwrap()));
+            }
+            if let IOHandler::KNOWN(handler) = &self.config.stdout {
+                match handler {
+                    KnownHandler::DEFAULT => {
+                        let file = Some(Self::default_stdout(&self.config, i));
+                        self.stdout.push(file);
+                    }
+                    KnownHandler::DISCARD => self.stdout.push(None),
+                }
+            }
+        }
+
+        for i in 0..self.config.processes {
+            let mut opts = OpenOptions::new();
+            opts.create(true).write(true).append(true).read(true);
+            if let IOHandler::FILE(filename) = &self.config.stderr {
+                self.stderr.push(Some(opts.open(filename).unwrap()));
+            }
+            if let IOHandler::KNOWN(handler) = &self.config.stderr {
+                match handler {
+                    KnownHandler::DEFAULT => {
+                        let file = Some(Self::default_stderr(&self.config, i));
+                        self.stderr.push(file);
+                    }
+                    KnownHandler::DISCARD => self.stderr.push(None),
+                }
+            }
+        }
+    }
+
+    fn default_stdout(config: &ProgramConfig, process_id: usize) -> File {
+        let name = format!(
+            "{}/logs/{}/p{}/stdout",
+            env::current_dir().unwrap().display(),
+            config.command,
+            process_id
+        );
+        File::options()
+            .create(true)
+            .append(true)
+            .open(name)
+            .unwrap()
+    }
+
+    fn default_stderr(config: &ProgramConfig, process_id: usize) -> File {
+        let name = format!(
+            "{}/logs/{}/p{}/stderr",
+            env::current_dir().unwrap().display(),
+            config.command,
+            process_id
+        );
+        File::options()
+            .create(true)
+            .append(true)
+            .open(name)
+            .unwrap()
     }
 
     pub fn update_process_status(&mut self) {

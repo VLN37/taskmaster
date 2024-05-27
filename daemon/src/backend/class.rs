@@ -36,8 +36,10 @@ impl BackEnd {
     pub fn start(&mut self) {
         print_programs("initial programs", &self.config.programs);
         self.programs = Self::create_programs(&self.config.programs);
-
         self.create_log_files();
+        for p in self.programs.values_mut() {
+            p.create_output_files();
+        }
         self.create_startup_processes();
 
         print_processes(&self.programs);
