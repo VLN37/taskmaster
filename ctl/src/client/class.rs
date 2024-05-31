@@ -60,8 +60,11 @@ impl Client {
     fn query(&mut self) -> Result<(), ServerError> {
         if let Some(query) = self.queries.pop_front() {
             self.backend.write_all(query.as_bytes())?;
-            self.server
-                .modify_interest(Server::read_event(BACKEND_KEY))?;
+            let event = match self.state {
+                ClientState::Unattached => Server::read_event(BACKEND_KEY),
+                ClientState::Attached(_) => Server::fixed_read(BACKEND_KEY),
+            };
+            self.server.modify_interest(event)?;
         }
         Ok(())
     }
@@ -99,10 +102,14 @@ impl Client {
                 if msg.ends_with("Attach successful!") {
                     println!("frontend attached");
                     self.state = ClientState::Attached("backend knows".into());
+                    let event = Server::fixed_read(BACKEND_KEY);
+                    self.server.modify_interest(event)?;
                 }
                 if msg.ends_with("Unattach successful!") {
                     println!("frontend unattached");
                     self.state = ClientState::Unattached;
+                    let event = Server::read_event(BACKEND_KEY);
+                    self.server.modify_interest(event)?;
                 }
             }
         }
@@ -110,10 +117,10 @@ impl Client {
     }
 
     fn request_write(&mut self, key: Key) -> Result<(), ServerError> {
-        let ev = match &self.state {
+        let event = match &self.state {
             ClientState::Attached(_) => Server::read_write_event(key),
             ClientState::Unattached => Server::write_event(key),
         };
-        self.server.modify_interest(ev)
+        self.server.modify_interest(event)
     }
 }
