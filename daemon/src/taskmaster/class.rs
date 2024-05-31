@@ -114,24 +114,27 @@ impl TaskMaster {
 
     fn respond(&mut self, key: Key) -> Result<(), ServerError> {
         let client = self.clients.get_mut(&key).unwrap();
-        let mut request = match client.requests.pop_front() {
-            Some(request) => request,
-            None => {
-                debug!("server.respond without request, should this happen?");
-                return Ok(());
+        let request = client.requests.pop_front();
+        let response = match request {
+            Some(mut request) => {
+                let response = self.backend.handle_request(&mut request);
+                let client = self.clients.get_mut(&key).unwrap();
+                if client.state != request.state {
+                    client.state = request.state.clone();
+                }
+                if !response.finished {
+                    client.requests.insert(0, request);
+                }
+                Some(response)
             }
+            None => client.responses.pop_front(),
         };
-
-        let response = self.backend.handle_request(&mut request);
-
-        let client = self.clients.get_mut(&key).unwrap();
-        if client.state != request.state {
-            client.state = request.state.clone();
+        if response.is_none() {
+            return Ok(());
+        } else {
+            debug!("auto response mock fetched");
         }
-        if !response.finished {
-            client.requests.insert(0, request);
-        }
-
+        let response = response.unwrap();
         // the connection is kept alive until dropped by frontend
         self.server.send(key, &response.message)?;
         self.request_read(key)?;
@@ -152,6 +155,18 @@ impl TaskMaster {
             let mut client = Client::new();
             client.requests.push_back(request);
             self.clients.insert(k, client);
+        }
+    }
+
+    pub fn generate_responses(&mut self) {
+        let responses = self.backend.handle_outputs();
+        for response in responses.into_iter() {
+            if let Some(c) = self.clients.get_mut(&response.client_key) {
+                if c.state != ClientState::Unattached {
+                    debug!("auto response mock generated");
+                    c.responses.push_back(response);
+                }
+            }
         }
     }
 
