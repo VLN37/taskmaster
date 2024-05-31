@@ -31,6 +31,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // while taskmaster.serve_routine().is_ok() {}
         '_main: loop {
             taskmaster.backend.update_processes_status();
+            taskmaster.generate_responses();
             match taskmaster.serve_routine() {
                 Ok(_) => match taskmaster.status {
                     Status::Reloading => break '_main,

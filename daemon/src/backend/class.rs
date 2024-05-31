@@ -28,8 +28,9 @@ impl BackEnd {
     pub fn handle_request(&mut self, request: &mut Request) -> Response {
         let msg = self.handle(request).unwrap_or_else(|x| x.into());
         Response {
-            message:  msg,
-            finished: request.finished,
+            message:    msg,
+            finished:   request.finished,
+            client_key: request.client_key,
         }
     }
 
@@ -77,6 +78,15 @@ impl BackEnd {
                 opts.open(stderr).unwrap();
             }
         }
+    }
+
+    pub fn handle_outputs(&mut self) -> Vec<Response> {
+        // mock
+        vec![Response {
+            message:    String::from("PUDIM\n"),
+            client_key: 43,
+            finished:   true,
+        }]
     }
 
     pub fn update_processes_status(&mut self) {
